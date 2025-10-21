@@ -8,6 +8,7 @@ import ThemeToggle from "../../components/ui/ThemeToggle";
 import UploadDropzone from "./components/UploadDropzone";
 import SelectedFileInfo from "./components/SelectedFileInfo";
 import UploadStatus from "./components/UploadStatus";
+import ConvertModal from "./components/ConvertModal";
 import { useThemeContext } from "../../context/theme/ThemeContext";
 
 // manajemen state
@@ -16,6 +17,7 @@ export default function ConvertPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const { isDark, toggle, ready } = useThemeContext();
 
   // definisi tema (gelap/terang)
@@ -62,6 +64,7 @@ export default function ConvertPage() {
 
     setIsUploading(false);
     setMessage(`File "${file.name}" berhasil dianalisis!`);
+    setShowModal(true);
   };
 
   const handleDragOver = (event) => {
@@ -90,6 +93,7 @@ export default function ConvertPage() {
   return (
     <main className={`flex min-h-screen w-full flex-col items-center justify-center transition-colors duration-300 p-4 ${theme.main}`}>
       {ready && <ThemeToggle isDark={isDark} onToggle={toggle} className="absolute top-4 right-4" />}
+      <ConvertModal isOpen={showModal} onClose={() => setShowModal(false)} isDark={isDark} file={file} />
 
       <div className="w-full max-w-2xl">
         <div className={`shadow-sm rounded-xl border p-8 text-center transition-colors duration-300 ${theme.card}`}>

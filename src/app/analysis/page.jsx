@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useThemeContext } from "../../context/theme/ThemeContext";
+import ThemeToggle from "../../components/ui/ThemeToggle";
 import FrequencyTable from "./components/FrequencyTable";
 import ZScoreTable from "./components/ZScoreTable";
 import FlowDiagram from "./components/FlowDiagram";
@@ -9,6 +11,7 @@ import BehaviorChart from "./components/BehaviorChart";
 
 const AnalysisPage = () => {
   const searchParams = useSearchParams();
+  const { isDark, toggle, ready } = useThemeContext();
   const [analysisResult, setAnalysisResult] = useState(null);
   const [metadata, setMetadata] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,40 +54,53 @@ const AnalysisPage = () => {
     loadData();
   }, [searchParams]);
 
-  // 2. Tampilan UI berdasarkan status loading, error, atau sukses
+  const themed = (light, dark) => (isDark ? dark : light);
+
   const renderContent = () => {
     if (isLoading) {
-      return <p className="text-center text-gray-500">Memuat dan menganalisis data...</p>;
+      return <p className={`text-center transition-colors ${themed("text-slate-500", "text-slate-400")}`}>Memuat dan menganalisis data...</p>;
     }
 
     if (error) {
-      return <p className="text-center text-red-500 font-semibold">{error}</p>;
+      return <p className={`text-center font-semibold transition-colors ${themed("text-red-600", "text-red-400")}`}>{error}</p>;
     }
 
     if (analysisResult) {
       return (
         <div className="space-y-12">
-          <FrequencyTable analysisResult={analysisResult} />
-          <ZScoreTable analysisResult={analysisResult} />
-          <FlowDiagram analysisResult={analysisResult} />
-          <BehaviorChart transitions={analysisResult.significantTransitions ?? []} />
+          <FrequencyTable analysisResult={analysisResult} isDarkMode={isDark} />
+          <ZScoreTable analysisResult={analysisResult} isDarkMode={isDark} />
+          <FlowDiagram analysisResult={analysisResult} isDarkMode={isDark} />
+          <BehaviorChart transitions={analysisResult.significantTransitions ?? []} isDarkMode={isDark} />
         </div>
       );
     }
 
-    return null; // Tidak menampilkan apa-apa jika tidak ada kondisi yang terpenuhi
+    return null;
   };
 
+  const pageBackground = isDark ? "bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 text-slate-100" : "bg-white text-slate-900";
+
+  const backdropClass = isDark ? "bg-[radial-gradient(circle_at_top,_rgba(94,234,212,0.08)_0,_rgba(0,0,0,0)_60%)]" : "bg-transparent";
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Hasil Analisis Sekuensial Lag (LSA)</h1>
-        {metadata && (
-          <p className="text-center text-sm text-gray-500">
-            Sumber: <span className="font-medium">{metadata.sourceFile}</span> • {metadata.recordCount} kejadian • Dibuat {new Date(metadata.generatedAt).toLocaleString("id-ID")}
-          </p>
-        )}
-        <div className="mt-8">{renderContent()}</div>
+    <div className={`relative min-h-screen px-6 py-8 transition-colors duration-300 ${pageBackground}`}>
+      <div className={`absolute inset-0 -z-10 transition-colors duration-300 ${backdropClass}`} />
+
+      <div className="container mx-auto">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-end mb-6">{ready && <ThemeToggle isDark={isDark} onToggle={toggle} />}</div>
+
+          <h1 className={`text-3xl font-bold mb-6 text-center transition-colors ${themed("text-slate-900", "text-white")}`}>Hasil Analisis Sekuensial Lag (LSA)</h1>
+
+          {metadata && (
+            <p className={`text-center text-sm transition-colors ${themed("text-slate-500", "text-slate-400")}`}>
+              Sumber: <span className="font-medium">{metadata.sourceFile}</span> • {metadata.recordCount} kejadian • Dibuat {new Date(metadata.generatedAt).toLocaleString("id-ID")}
+            </p>
+          )}
+
+          <div className="mt-8">{renderContent()}</div>
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ const BehaviorChart = ({ transitions }) => {
   const edges = transitions ?? [];
   const [positionedNodes, setPositionedNodes] = useState([]);
   const [svgDimensions, setSvgDimensions] = useState({ width: 1000, height: 700 });
+  const [hiddenNodes, setHiddenNodes] = useState(() => new Set());
   const [draggedNodeName, setDraggedNodeName] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isSimulating, setIsSimulating] = useState(false);
@@ -27,18 +28,34 @@ const BehaviorChart = ({ transitions }) => {
     }, {});
   }, [edges]);
 
+  const sortedNodes = useMemo(() => {
+    if (!nodes.length) return [];
+    return [...nodes].sort((a, b) => {
+      const scoreDiff = (nodeScores[b] ?? Number.NEGATIVE_INFINITY) - (nodeScores[a] ?? Number.NEGATIVE_INFINITY);
+      if (scoreDiff !== 0) return scoreDiff;
+      return a.localeCompare(b);
+    });
+  }, [nodes, nodeScores]);
+
+  const visibleNodes = useMemo(() => sortedNodes.filter((name) => !hiddenNodes.has(name)), [hiddenNodes, sortedNodes]);
+
+  const visibleEdges = useMemo(
+    () => edges.filter((edge) => !hiddenNodes.has(edge.from) && !hiddenNodes.has(edge.to)),
+    [edges, hiddenNodes]
+  );
+
   // Hitung degree (jumlah koneksi) setiap node
   const nodeDegrees = useMemo(() => {
     const degrees = {};
-    nodes.forEach((node) => (degrees[node] = 0));
-    edges.forEach((edge) => {
+    visibleNodes.forEach((node) => (degrees[node] = 0));
+    visibleEdges.forEach((edge) => {
       degrees[edge.from] = (degrees[edge.from] || 0) + 1;
       if (edge.from !== edge.to) {
         degrees[edge.to] = (degrees[edge.to] || 0) + 1;
       }
     });
     return degrees;
-  }, [nodes, edges]);
+  }, [visibleEdges, visibleNodes]);
 
   const nodeWidth = 120;
   const nodeHeight = 40;
@@ -47,8 +64,13 @@ const BehaviorChart = ({ transitions }) => {
 
   // Force-Directed Layout dengan spacing lebih besar
   useEffect(() => {
-    if (!nodes.length) {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    if (!visibleNodes.length) {
       setPositionedNodes([]);
+      setIsSimulating(false);
       return;
     }
 
@@ -58,8 +80,8 @@ const BehaviorChart = ({ transitions }) => {
     const centerY = height / 2;
 
     // Initialize dengan circular layout yang lebih besar
-    const initialNodes = nodes.map((name, index) => {
-      const angle = (index / nodes.length) * 2 * Math.PI;
+    const initialNodes = visibleNodes.map((name, index) => {
+      const angle = (index / visibleNodes.length) * 2 * Math.PI;
       const radius = Math.min(width, height) * 0.35;
       return {
         name,
@@ -120,7 +142,7 @@ const BehaviorChart = ({ transitions }) => {
         }
 
         // 2. Attraction force untuk edges
-        edges.forEach((edge) => {
+        visibleEdges.forEach((edge) => {
           const nodeA = nodeMap[edge.from];
           const nodeB = nodeMap[edge.to];
           if (!nodeA || !nodeB || nodeA === nodeB) return;
@@ -186,7 +208,7 @@ const BehaviorChart = ({ transitions }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [nodes, edges, svgDimensions]);
+  }, [visibleNodes, visibleEdges, svgDimensions]);
 
   const getSvgCoordinates = (event) => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -240,7 +262,7 @@ const BehaviorChart = ({ transitions }) => {
   // Kelompokkan edges per pasangan node
   const edgeGroups = useMemo(() => {
     const groups = new Map();
-    edges.forEach((edge, index) => {
+    visibleEdges.forEach((edge, index) => {
       if (edge.from === edge.to) {
         groups.set(`self-${index}`, [{ edge, index, isSelf: true }]);
         return;
@@ -258,7 +280,7 @@ const BehaviorChart = ({ transitions }) => {
       });
     });
     return groups;
-  }, [edges]);
+  }, [visibleEdges]);
 
   // Orthogonal edge routing - garis berbelok seperti gambar 2
   const getOrthogonalPath = (fromNode, toNode, slotIndex, totalSlots) => {
@@ -275,7 +297,6 @@ const BehaviorChart = ({ transitions }) => {
     // Tentukan arah keluar dari node
     const dx = endX - startX;
     const dy = endY - startY;
-    const angle = Math.atan2(dy, dx);
 
     // Titik keluar dari node source
     let outX, outY;
@@ -319,6 +340,28 @@ const BehaviorChart = ({ transitions }) => {
     return { pathString, labelX, labelY };
   };
 
+  const toggleNodeVisibility = (name) => {
+    setHiddenNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  };
+
+  const showAllNodes = () => {
+    setHiddenNodes(new Set());
+  };
+
+  const hideAllNodes = () => {
+    setHiddenNodes(new Set(sortedNodes));
+  };
+
+  const allNodesHidden = visibleNodes.length === 0;
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900/60">
       <div className="flex items-center justify-between">
@@ -333,17 +376,74 @@ const BehaviorChart = ({ transitions }) => {
           </div>
         )}
       </div>
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Atur Visibilitas Node</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Toggle untuk menyembunyikan node beserta garis transisi yang terhubung.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={showAllNodes}
+              disabled={hiddenNodes.size === 0}
+              className="rounded-md border border-blue-500 px-3 py-1 text-xs font-medium text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-300 dark:text-blue-200 dark:hover:bg-blue-900/40"
+            >
+              Tampilkan Semua
+            </button>
+            <button
+              type="button"
+              onClick={hideAllNodes}
+              disabled={sortedNodes.length === 0 || hiddenNodes.size === sortedNodes.length}
+              className="rounded-md border border-slate-400 px-3 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-500 dark:text-slate-200 dark:hover:bg-slate-700/40"
+            >
+              Sembunyikan Semua
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {sortedNodes.length === 0 && <span className="text-xs text-slate-500 dark:text-slate-400">Tidak ada node yang tersedia.</span>}
+          {sortedNodes.map((name) => {
+            const isHidden = hiddenNodes.has(name);
+            const score = nodeScores[name];
+            const hasScore = Number.isFinite(score);
+            return (
+              <label
+                key={name}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  isHidden
+                    ? "border-slate-300 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400"
+                    : "border-blue-200 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-500/40 dark:bg-blue-900/30 dark:text-blue-200"
+                }`}
+              >
+                <input type="checkbox" className="h-3 w-3 accent-blue-600 dark:accent-blue-400" checked={!isHidden} onChange={() => toggleNodeVisibility(name)} />
+                <span>{name}</span>
+                {hasScore && (
+                  <span className="text-[10px] font-normal text-slate-400 dark:text-slate-300">
+                    {score.toFixed(2)}
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </div>
       <div className="mt-6 flex justify-center overflow-auto">
-        <svg
-          ref={svgRef}
-          width={svgDimensions.width}
-          height={svgDimensions.height}
-          viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/30"
-        >
+        {allNodesHidden ? (
+          <div className="flex min-h-[300px] w-full max-w-4xl items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-300">
+            Semua node disembunyikan. Aktifkan kembali salah satu node untuk melihat diagram.
+          </div>
+        ) : (
+          <svg
+            ref={svgRef}
+            width={svgDimensions.width}
+            height={svgDimensions.height}
+            viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            className="border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/30"
+          >
           <defs>
             <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" className="dark:fill-blue-400" />
@@ -445,7 +545,8 @@ const BehaviorChart = ({ transitions }) => {
               );
             })}
           </g>
-        </svg>
+          </svg>
+        )}
         <style jsx>{`
           .grabbing,
           .grabbing * {

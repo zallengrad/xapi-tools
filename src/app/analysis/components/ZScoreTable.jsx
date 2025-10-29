@@ -17,7 +17,7 @@ const ZScoreTable = ({ analysisResult, isDarkMode }) => {
 
   return (
     <div className={`mt-8 overflow-x-auto rounded-3xl border shadow-sm p-6 transition-colors ${themed("border-slate-200 bg-white", "border-slate-700 bg-slate-900/60")}`}>
-      <h2 className={`text-2xl font-semibold mb-4 transition-colors ${themed("text-slate-900", "text-white")}`}>Langkah 4: Tabel Z-Score (Adjusted Residuals)</h2>
+      <h2 className={`text-2xl font-semibold mb-4 transition-colors ${themed("text-slate-900", "text-white")}`}>Tabel Z-Score (Adjusted Residuals)</h2>
       <p className={`text-sm mb-4 transition-colors ${themed("text-slate-600", "text-slate-300")}`}>Nilai Z-score ≥ 1.96 menunjukkan transisi signifikan positif (hijau).</p>
 
       <div className="overflow-x-auto">

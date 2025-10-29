@@ -10,12 +10,15 @@ export default function FlowDiagram({ analysisResult, isDarkMode }) {
 
   return (
     <div className={`mt-8 rounded-3xl border shadow-sm p-6 transition-colors ${themed("border-slate-200 bg-white", "border-slate-700 bg-slate-900/60")}`}>
-      <h2 className={`text-2xl font-semibold mb-4 transition-colors ${themed("text-slate-900", "text-white")}`}>Langkah 4: Transisi Signifikan</h2>
-      <div className="space-y-3">
+      <h2 className={`mb-4 text-2xl font-semibold transition-colors ${themed("text-slate-900", "text-white")}`}>Transisi Signifikan</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {transitions.map((item) => (
           <div key={`${item.from}-${item.to}`} className={`rounded-xl border p-4 shadow-sm transition-colors ${themed("border-slate-200 bg-white", "border-slate-700 bg-slate-900/50")}`}>
             <p className={`text-sm transition-colors ${themed("text-slate-700", "text-slate-200")}`}>
-              <span className="font-semibold">{item.from}</span> → <span className="font-semibold">{item.to}</span>
+              <span className="font-semibold">{item.from}</span>{" "}
+              <span aria-hidden="true">→</span>
+              <span className="sr-only">to</span>{" "}
+              <span className="font-semibold">{item.to}</span>
             </p>
             <p className={`text-sm transition-colors ${themed("text-green-600", "text-green-400")}`}>Z-score: {item.z.toFixed(2)}</p>
           </div>

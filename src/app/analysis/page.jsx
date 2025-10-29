@@ -88,7 +88,7 @@ const AnalysisPage = () => {
       <div className={`absolute inset-0 -z-10 transition-colors duration-300 ${backdropClass}`} />
 
       <div className="container mx-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-8xl mx-auto">
           <div className="flex justify-end mb-6">{ready && <ThemeToggle isDark={isDark} onToggle={toggle} />}</div>
 
           <h1 className={`text-3xl font-bold mb-6 text-center transition-colors ${themed("text-slate-900", "text-white")}`}>Hasil Analisis Sekuensial Lag (LSA)</h1>

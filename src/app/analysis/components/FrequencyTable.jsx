@@ -15,7 +15,7 @@ const FrequencyTable = ({ analysisResult, isDarkMode }) => {
 
   return (
     <div className={`mt-8 overflow-x-auto rounded-3xl border shadow-sm p-6 transition-colors ${themed("border-slate-200 bg-white", "border-slate-700 bg-slate-900/60")}`}>
-      <h2 className={`text-2xl font-semibold mb-4 transition-colors ${themed("text-slate-900", "text-white")}`}>Langkah 2: Tabel Frekuensi Transisi (Observed)</h2>
+      <h2 className={`text-2xl font-semibold mb-4 transition-colors ${themed("text-slate-900", "text-white")}`}>Tabel Frekuensi Transisi (Observed)</h2>
 
       <div className="overflow-x-auto">
         <table className={`min-w-full border-collapse border transition-colors ${themed("border-slate-300", "border-slate-600")}`}>

@@ -1,6 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "../context/theme/ThemeContext";
+// 1. Impor "Interkom" yang baru kita buat
+import AuthProvider from "../components/AuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,7 +23,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        {/*
+          'ThemeProvider' membungkus 'AuthProvider'.
+          'AuthProvider' membungkus '{children}' (semua halaman Anda).
+        */}
+        <ThemeProvider>
+          {/* 2. Pasang "Interkom" di sini */}
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

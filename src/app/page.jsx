@@ -3,6 +3,7 @@
 import Link from "next/link";
 import ThemeToggle from "../components/ui/ThemeToggle";
 import { useThemeContext } from "../context/theme/ThemeContext";
+import LoginButton from "../components/LoginButton";
 
 const sections = [
   {
@@ -94,12 +95,7 @@ function HeroPanel({ isDarkMode }) {
         <p className={`text-base font-semibold transition-colors ${themed("text-slate-600", "text-slate-200")}`}>{tagline}</p>
         <p className={`text-base leading-relaxed transition-colors ${themed("text-slate-600", "text-slate-300")}`}>{description}</p>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/convert"
-            className={`inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition ${themed("bg-slate-900 text-white hover:bg-slate-700", "bg-slate-100 text-slate-900 hover:bg-white")}`}
-          >
-            Mulai
-          </Link>
+          <LoginButton />
 
           <a
             href="mailto:hello@devlens.io"
@@ -308,7 +304,10 @@ export default function Home() {
     <div className={`relative min-h-screen px-6 py-16 transition-colors duration-300 ${pageBackground}`}>
       <div className={`absolute inset-0 -z-10 transition-colors duration-300 ${backdropClass}`} />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-16">
-        <div className="flex justify-end">{ready && <ThemeToggle isDark={isDark} onToggle={toggle} />}</div>
+        <div className="flex items-center justify-between">
+          {/* Tombol Tema Anda */}
+          {ready && <ThemeToggle isDark={isDark} onToggle={toggle} />}
+        </div>
         <HeroPanel isDarkMode={isDark} />
         <ProblemSection isDarkMode={isDark} />
         <FeatureSection isDarkMode={isDark} />

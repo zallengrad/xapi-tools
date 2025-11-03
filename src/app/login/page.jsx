@@ -48,7 +48,7 @@ export default function LoginPage() {
 
     if (result.ok) {
       // Jika login sukses, arahkan ke halaman utama
-      router.push("/convert"); // Atau bisa juga ke /analysis
+      router.push("/dashboard/convert"); // Atau bisa juga ke /analysis
     } else {
       // Jika gagal, tampilkan pesan error dari NextAuth
       setError(result.error || "Email atau password salah.");
@@ -58,7 +58,7 @@ export default function LoginPage() {
   // Fungsi untuk login via "KTP Tamu" (GitHub)
   const handleGithubSignIn = () => {
     setIsLoading(true);
-    signIn("github", { callbackUrl: "/convert" });
+    signIn("github", { callbackUrl: "/dashboard/convert" });
   };
 
   // Logika tema (gelap/terang)

@@ -4,8 +4,21 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const ThemeContext = createContext(null);
 
+function detectInitialTheme() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const stored = window.localStorage.getItem("devlens-theme");
+  if (stored === "dark") return true;
+  if (stored === "light") return false;
+
+  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+  return Boolean(prefersDark);
+}
+
 export function ThemeProvider({ children }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(detectInitialTheme);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -31,6 +44,14 @@ export function ThemeProvider({ children }) {
 
     window.localStorage.setItem("devlens-theme", isDark ? "dark" : "light");
   }, [isDark, ready]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    document.documentElement.classList.toggle("dark", isDark);
+  }, [isDark]);
 
   const value = useMemo(
     () => ({

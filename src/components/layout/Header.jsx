@@ -17,7 +17,7 @@ function getTitleFromPathname(pathname) {
   // if (pathname.startsWith("/dashboard")) {
   //   return "Dashboard Utama";
   // }
-  return "DevLens"; // Judul default
+  // Judul default
 }
 
 export default function Header() {
@@ -27,12 +27,14 @@ export default function Header() {
   // Gunakan useMemo agar judul tidak dihitung ulang pada setiap render,
   // kecuali jika pathname berubah.
   const title = useMemo(() => getTitleFromPathname(pathname), [pathname]);
+  const headerShell = isDark ? "border-slate-800 bg-slate-900/70" : "border-slate-200 bg-white/70";
+  const titleClass = isDark ? "text-slate-100" : "text-slate-900";
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/70 px-6 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/70">
+    <header className={`sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b px-6 backdrop-blur-sm transition-colors duration-300 ${headerShell}`}>
       {/* 1. Judul Halaman (Dinamis berdasarkan URL) */}
       <div>
-        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h1>
+        <h1 className={`text-lg font-semibold transition-colors ${titleClass}`}>{title}</h1>
       </div>
 
       {/* 2. Kontrol Sisi Kanan (Theme Toggle) */}

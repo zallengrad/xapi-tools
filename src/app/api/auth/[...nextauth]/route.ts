@@ -15,6 +15,7 @@ export const authOptions = {
     GithubProvider({
       clientId: process.env.GITHUB_ID ?? "",
       clientSecret: process.env.GITHUB_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
     }),
 
     // --- INI "PINTU MASUK" BARU YANG KITA TAMBAHKAN ---
@@ -65,6 +66,7 @@ export const authOptions = {
 
   session: {
     strategy: "jwt",
+    maxAge: 60 * 60, // 60 detik * 60 menit = 3600 detik (1 jam)
   },
 
   callbacks: {

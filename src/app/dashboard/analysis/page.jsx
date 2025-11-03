@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useThemeContext } from "../../context/theme/ThemeContext";
-import ThemeToggle from "../../components/ui/ThemeToggle";
+import { useThemeContext } from "../../../context/theme/ThemeContext";
+import ThemeToggle from "../../../components/ui/ThemeToggle";
 import FrequencyTable from "./components/FrequencyTable";
 import ZScoreTable from "./components/ZScoreTable";
 import FlowDiagram from "./components/FlowDiagram";
@@ -79,7 +79,7 @@ const AnalysisPage = () => {
     return null;
   };
 
-  const pageBackground = isDark ? "bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 text-slate-100" : "bg-white text-slate-900";
+  const pageBackground = isDark ? "bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 text-slate-100" : "bg-slate-100 text-slate-900";
 
   const backdropClass = isDark ? "bg-[radial-gradient(circle_at_top,_rgba(94,234,212,0.08)_0,_rgba(0,0,0,0)_60%)]" : "bg-transparent";
 
@@ -89,8 +89,6 @@ const AnalysisPage = () => {
 
       <div className="container mx-auto">
         <div className="max-w-8xl mx-auto">
-          <div className="flex justify-end mb-6">{ready && <ThemeToggle isDark={isDark} onToggle={toggle} />}</div>
-
           <h1 className={`text-3xl font-bold mb-6 text-center transition-colors ${themed("text-slate-900", "text-white")}`}>Hasil Analisis Sekuensial Lag (LSA)</h1>
 
           {metadata && (

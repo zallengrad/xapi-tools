@@ -65,7 +65,7 @@ export default function ConvertPage() {
   // definisi tema (gelap/terang)
   const theme = isDark
     ? {
-        main: "bg-slate-900 text-slate-100",
+        main: "bg-slate-950 text-slate-100",
         card: "bg-slate-800 border-slate-700",
         heading: "text-white",
         subtitle: "text-slate-400",
@@ -73,7 +73,7 @@ export default function ConvertPage() {
         disabledButton: "disabled:bg-slate-600 disabled:text-slate-300",
       }
     : {
-        main: "bg-slate-50 text-slate-900",
+        main: "bg-slate-100 text-slate-900",
         card: "bg-white border-slate-200",
         heading: "text-slate-800",
         subtitle: "text-slate-500",

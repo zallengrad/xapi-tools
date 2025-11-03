@@ -15,10 +15,12 @@ export default withAuth(
     // Opsi ini memberi tahu 'withAuth' cara kerja 'Satpam'
     callbacks: {
       // "Kapan seorang tamu dianggap 'Resmi' (authorized)?"
-      authorized: ({ token }) => {
-        // "Dia resmi HANYA JIKA dia punya 'Kartu Akses' (token)"
-        // '!!token' adalah cara cepat bilang 'token-nya ada dan tidak kosong'
-        return !!token;
+      authorized: ({ token, req }) => {
+        // Jika menggunakan JWT session, NextAuth memberikan 'token'
+        if (token) return true;
+        // Jika menggunakan session berbasis database, token akan null,
+        // jadi kita cek apakah ada session user yang valid.
+        return !!req?.nextauth?.session?.user;
       },
     },
     // "Jika tamu tidak resmi, antar dia ke 'Lobi' ini"

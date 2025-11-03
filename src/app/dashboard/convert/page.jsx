@@ -4,16 +4,16 @@
 
 import { useState } from "react";
 import { FiUploadCloud } from "react-icons/fi";
-import ThemeToggle from "../../components/ui/ThemeToggle";
+import ThemeToggle from "../../../components/ui/ThemeToggle";
 import UploadDropzone from "./components/UploadDropzone";
 import SelectedFileInfo from "./components/SelectedFileInfo";
 import UploadStatus from "./components/UploadStatus";
 import ConvertModal from "./components/ConvertModal";
-import { useThemeContext } from "../../context/theme/ThemeContext";
+import { useThemeContext } from "../../../context/theme/ThemeContext";
 import { useRouter } from "next/navigation";
 import Papa from "papaparse";
-import { assignBehaviorCode } from "../../lib/behaviorCode";
-import { runLSA } from "../../lib/lsa";
+import { assignBehaviorCode } from "../../../lib/behaviorCode";
+import { runLSA } from "../../../lib/lsa";
 
 // manajemen state
 export default function ConvertPage() {

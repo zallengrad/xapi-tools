@@ -172,7 +172,7 @@ export default function ConvertPage() {
       setIsUploading(false);
 
       setTimeout(() => {
-        router.push(`/analysis?id=${id}`);
+        router.push(`/dashboard/analysis/${id}`);
       }, 1200);
     } catch (error) {
       console.error("Error parsing CSV:", error);

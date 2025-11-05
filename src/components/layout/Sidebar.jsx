@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useThemeContext } from "@/context/theme/ThemeContext";
@@ -30,7 +31,7 @@ function NavLink({ href, icon: Icon, children, isDark }) {
   );
 }
 
-function AnalysisNav({ items, isDark }) {
+function AnalysisNav({ items, isDark, isLoading }) {
   const pathname = usePathname();
   const isActive = pathname.startsWith("/dashboard/analysis");
 
@@ -65,16 +66,21 @@ function AnalysisNav({ items, isDark }) {
         className={`overflow-hidden rounded-xl border ${dropdownShell}`}
       >
         <ul className="flex flex-col py-2 text-sm">
-          {items.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                className={`block px-4 py-2 transition-colors ${itemClass}`}
-              >
-                <span className="line-clamp-1">{item.title}</span>
-              </Link>
+          {isLoading ? (
+            <li className={`px-4 py-2 ${isDark ? "text-slate-500" : "text-slate-400"}`}>Memuat...</li>
+          ) : items.length ? (
+            items.map((item) => (
+              <li key={item.id}>
+                <Link href={item.href} className={`block px-4 py-2 transition-colors ${itemClass}`}>
+                  <span className="line-clamp-1">{item.title}</span>
+                </Link>
+              </li>
+            ))
+          ) : (
+            <li className={`px-4 py-2 text-xs ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+              Belum ada hasil.
             </li>
-          ))}
+          )}
         </ul>
         <div className="border-t border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition-colors dark:border-slate-800">
           <Link href="/dashboard/analysis" className={`inline-flex items-center gap-2 ${seeAllClass}`}>
@@ -90,6 +96,8 @@ function AnalysisNav({ items, isDark }) {
 export default function Sidebar() {
   const { data: session, status } = useSession();
   const { isDark } = useThemeContext();
+  const [recentAnalyses, setRecentAnalyses] = useState([]);
+  const [isLoadingAnalyses, setIsLoadingAnalyses] = useState(true);
 
   const navLinks = [
     { href: "/dashboard/convert", label: "Upload Data", icon: FiUploadCloud },
@@ -97,13 +105,41 @@ export default function Sidebar() {
     // { href: "/dashboard", label: "Dashboard", icon: FiGrid },
   ];
 
-  const recentAnalyses = [
-    { id: "history-1", title: "kelas-algo-a.csv", href: "/dashboard/analysis?demo=kelas-algo-a" },
-    { id: "history-2", title: "xapi-lab-b.csv", href: "/dashboard/analysis?demo=xapi-lab-b" },
-    { id: "history-3", title: "learning-path-s10.csv", href: "/dashboard/analysis?demo=learning-path-s10" },
-    { id: "history-4", title: "kolaborasi-squad-7.csv", href: "/dashboard/analysis?demo=kolaborasi-squad-7" },
-    { id: "history-5", title: "refleksi-sesi-final.csv", href: "/dashboard/analysis?demo=refleksi-sesi-final" },
-  ];
+  useEffect(() => {
+    let active = true;
+
+    const loadRecent = async () => {
+      setIsLoadingAnalyses(true);
+      try {
+        const response = await fetch("/api/analysis?limit=5");
+        if (!response.ok) {
+          throw new Error("Failed to load");
+        }
+        const data = await response.json();
+        if (!active) return;
+        const mapped = (Array.isArray(data) ? data : []).map((item) => ({
+          id: item.id,
+          title: item.sourceFile || "Tanpa Judul",
+          href: `/dashboard/analysis/${item.id}`,
+        }));
+        setRecentAnalyses(mapped);
+      } catch (err) {
+        if (active) {
+          setRecentAnalyses([]);
+        }
+      } finally {
+        if (active) {
+          setIsLoadingAnalyses(false);
+        }
+      }
+    };
+
+    loadRecent();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const sidebarShell = isDark ? "border-slate-800 bg-slate-900 text-slate-100" : "border-slate-200 bg-white text-slate-900";
 
@@ -125,7 +161,7 @@ export default function Sidebar() {
               {link.label}
             </NavLink>
           ))}
-          <AnalysisNav items={recentAnalyses} isDark={isDark} />
+          <AnalysisNav items={recentAnalyses} isDark={isDark} isLoading={isLoadingAnalyses} />
         </nav>
       </div>
 

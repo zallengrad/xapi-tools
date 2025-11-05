@@ -1,158 +1,206 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useThemeContext } from "../../../context/theme/ThemeContext";
-import FrequencyTable from "./components/FrequencyTable";
-import ZScoreTable from "./components/ZScoreTable";
-import FlowDiagram from "./components/FlowDiagram";
-import BehaviorChart from "./components/BehaviorChart";
 import AnalysisHistory from "./components/AnalysisHistory";
+import { FiBarChart2, FiClock, FiFileText, FiLayers, FiRefreshCcw } from "react-icons/fi";
 
-const MOCK_ANALYSIS_HISTORY = [
-  {
-    id: "lsa-20240501-01",
-    title: "kelas-algo-a.csv",
-    description: "Transisi terkuat: B1 -> B3 (Z = 2.14). Fokus pada fase debugging.",
-    createdAt: "12 Mei 2024, 10:42 WIB",
-    recordCount: 428,
-    cohort: "Angkatan 2024 - Sesi Pagi",
-    tag: "Algoritma",
-  },
-  {
-    id: "lsa-20240417-02",
-    title: "xapi-lab-b.csv",
-    description: "Aktivitas kolaborasi meningkat setelah intervensi modul video.",
-    createdAt: "28 April 2024, 14:07 WIB",
-    recordCount: 312,
-    cohort: "Kelompok B2 - Laboratorium",
-    tag: "Eksperimen",
-  },
-  {
-    id: "lsa-20240401-07",
-    title: "learning-path-s10.csv",
-    description: "Pola baru: B2 -> B4 memberikan dampak negatif (Z = -1.72).",
-    createdAt: "02 April 2024, 09:15 WIB",
-    recordCount: 198,
-    cohort: "Sesi Mandiri - Sprint 10",
-    tag: "Insight",
-  },
-];
-
-const AnalysisPage = () => {
-  const searchParams = useSearchParams();
+export default function AnalysisOverviewPage() {
   const { isDark } = useThemeContext();
-  const [analysisResult, setAnalysisResult] = useState(null);
-  const [metadata, setMetadata] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [results, setResults] = useState([]);
 
   useEffect(() => {
-    const loadData = async () => {
-      const id = searchParams.get("id");
+    let mounted = true;
 
-      if (!id) {
-        setError("Tidak ada data untuk dianalisis. Silakan kembali ke halaman Convert untuk mengunggah file.");
-        setIsLoading(false);
-        return;
-      }
+    const loadResults = async () => {
+      setIsLoading(true);
+      setError("");
 
       try {
-        const response = await fetch(`/api/analysis?id=${id}`);
+        const response = await fetch("/api/analysis");
 
         if (!response.ok) {
-          const { error: message } = await response.json();
-          throw new Error(message || "Gagal memuat hasil analisis.");
+          if (response.status === 401) {
+            throw new Error("Sesi kedaluwarsa. Silakan login ulang.");
+          }
+
+          const { error: message } = await response.json().catch(() => ({}));
+          throw new Error(message || "Gagal mengambil daftar analisis.");
         }
 
-        const row = await response.json();
-
-        setAnalysisResult(row.payload);
-        setMetadata({
-          generatedAt: row.generatedAt,
-          sourceFile: row.sourceFile,
-          recordCount: row.recordCount,
-        });
-        setIsLoading(false);
-      } catch (e) {
-        console.error("Error mengambil hasil analisis:", e);
-        setError(e instanceof Error ? e.message : "Terjadi kesalahan saat mengambil data.");
-        setIsLoading(false);
+        const data = await response.json();
+        if (!mounted) return;
+        setResults(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!mounted) return;
+        setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    loadData();
-  }, [searchParams]);
+    loadResults();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const summary = useMemo(() => {
+    if (!results.length) {
+      return {
+        total: 0,
+        lastGeneratedAt: null,
+        totalEvents: 0,
+      };
+    }
+
+    const total = results.length;
+    const totalEvents = results.reduce((sum, item) => sum + (item.recordCount ?? 0), 0);
+    const lastGeneratedAt = results[0]?.generatedAt ? new Date(results[0].generatedAt) : null;
+
+    return { total, lastGeneratedAt, totalEvents };
+  }, [results]);
+
+  const historyItems = useMemo(() => {
+    return results.slice(0, 10).map((item) => {
+      const payload = item?.payload && typeof item.payload === "object" ? item.payload : {};
+      const transitions = Array.isArray(payload?.significantTransitions) ? payload.significantTransitions : [];
+
+      return {
+        id: item.id,
+        title: item.sourceFile || "Tanpa Judul",
+        href: `/dashboard/analysis/${item.id}`,
+        description: transitions.length
+          ? `Transisi signifikan: ${transitions
+              .slice(0, 2)
+              .map((transition) => `${transition.from}->${transition.to}`)
+              .join(", ")}`
+          : "Belum ada transisi signifikan yang tercatat.",
+        createdAt: item.generatedAt ? new Date(item.generatedAt).toLocaleString("id-ID") : "-",
+        recordCount: item.recordCount ?? 0,
+        cohort: item.createdAt ? `Disimpan ${new Date(item.createdAt).toLocaleString("id-ID")}` : null,
+        tag: transitions.length ? "Signifikan" : "Umum",
+      };
+    });
+  }, [results]);
+
+  const emptyState = !isLoading && !results.length;
 
   const themed = (light, dark) => (isDark ? dark : light);
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="flex h-full items-center justify-center rounded-3xl border border-dashed transition-colors duration-300">
-          <p className={`px-6 py-10 text-center text-sm ${themed("text-slate-500", "text-slate-300")}`}>Memuat dan menganalisis data...</p>
-        </div>
-      );
-    }
-
-    if (error) {
-      return <div className={`rounded-3xl border px-6 py-10 text-center text-sm font-semibold transition-colors duration-300 ${themed("border-red-200 text-red-600", "border-red-800/60 text-red-300")}`}>{error}</div>;
-    }
-
-    if (analysisResult) {
-      return (
-        <div className="space-y-12">
-          <FrequencyTable analysisResult={analysisResult} isDarkMode={isDark} />
-          <ZScoreTable analysisResult={analysisResult} isDarkMode={isDark} />
-          <FlowDiagram analysisResult={analysisResult} isDarkMode={isDark} />
-          <BehaviorChart transitions={analysisResult.significantTransitions ?? []} isDarkMode={isDark} />
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  const pageBackground = isDark ? "bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 text-slate-100" : "bg-slate-100 text-slate-900";
-  const backdropClass = isDark ? "bg-[radial-gradient(circle_at_top,_rgba(94,234,212,0.08)_0,_rgba(0,0,0,0)_60%)]" : "bg-transparent";
-  const renderedContent = renderContent();
-
   return (
-    <div className={`relative min-h-screen px-6 py-8 transition-colors duration-300 ${pageBackground}`}>
-      <div className={`absolute inset-0 -z-10 transition-colors duration-300 ${backdropClass}`} />
+    <div className={`relative min-h-screen px-6 py-8 transition-colors duration-300 ${themed("bg-slate-100 text-slate-900", "bg-gradient-to-b from-slate-950 via-slate-950/80 to-slate-950 text-slate-100")}`}>
+      <div className={`pointer-events-none absolute inset-0 -z-10 transition-colors duration-300 ${themed("bg-transparent", "bg-[radial-gradient(circle_at_top,_rgba(94,234,212,0.08)_0,_rgba(0,0,0,0)_60%)]")}`} />
 
-      <div className="container mx-auto">
-        <div className="mx-auto max-w-8xl">
-          <h1 className={`mb-6 text-center text-3xl font-bold transition-colors ${themed("text-slate-900", "text-white")}`}>Hasil Analisis Sekuensial Lag (LSA)</h1>
-
-          {metadata ? (
-            <p className={`text-center text-sm transition-colors ${themed("text-slate-500", "text-slate-400")}`}>
-              Sumber: <span className="font-medium">{metadata.sourceFile}</span> | {metadata.recordCount} kejadian | Dibuat {new Date(metadata.generatedAt).toLocaleString("id-ID")}
-            </p>
-          ) : (
-            <p className={`text-center text-sm transition-colors ${themed("text-slate-500", "text-slate-400")}`}>Gunakan panel riwayat di sebelah kiri untuk melihat contoh hasil analisis yang telah disimulasikan.</p>
-          )}
-
-          <div className="mt-8 grid gap-8 lg:grid-cols-[340px,1fr]">
-            <AnalysisHistory title="Riwayat Analisis" subtitle="Kumpulan ringkas hasil LSA terbaru yang pernah dijalankan." items={MOCK_ANALYSIS_HISTORY} isDark={isDark} />
-
-            <div className="flex min-h-[320px] flex-col">
-              {renderedContent ?? (
-                <div
-                  className={`flex flex-1 items-center justify-center rounded-3xl border border-dashed px-6 text-center text-sm leading-relaxed transition-colors ${themed(
-                    "border-slate-300 text-slate-500",
-                    "border-slate-700 text-slate-400"
-                  )}`}
-                >
-                  Belum ada hasil yang dimuat. Pilih salah satu riwayat di kiri untuk simulasi, atau unggah file baru di halaman Convert.
-                </div>
-              )}
-            </div>
+      <div className="container mx-auto px-2 sm:px-4">
+        <header className="mx-auto flex max-w-8xl flex-col items-start justify-between gap-4 pb-8 lg:flex-row lg:items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Riwayat Analisis LSA</h1>
+            <p className={`mt-2 text-sm ${themed("text-slate-600", "text-slate-400")}`}>Pantau semua file xAPI yang telah Anda konversi dan analisis. Klik salah satu hasil untuk melihat detail lengkapnya.</p>
           </div>
+
+          <Link
+            href="/dashboard/convert"
+            className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors ${themed("bg-sky-600 text-white hover:bg-sky-500", "bg-sky-500/90 text-white hover:bg-sky-400")}`}
+          >
+            <FiRefreshCcw />
+            Jalankan Analisis Baru
+          </Link>
+        </header>
+
+        <section className="mx-auto grid max-w-8xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <article className={`rounded-3xl border p-5 transition-colors ${themed("border-slate-200 bg-white", "border-slate-800/70 bg-slate-900/60")}`}>
+            <header className="flex items-center gap-3">
+              <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${themed("bg-sky-500/10 text-sky-600", "bg-sky-500/20 text-sky-200")}`}>
+                <FiLayers size={20} />
+              </span>
+              <div>
+                <p className={`text-xs font-medium uppercase tracking-[0.2em] ${themed("text-slate-500", "text-slate-400")}`}>Total Analisis</p>
+                <p className="text-2xl font-bold">{summary.total}</p>
+              </div>
+            </header>
+          </article>
+
+          <article className={`rounded-3xl border p-5 transition-colors ${themed("border-slate-200 bg-white", "border-slate-800/70 bg-slate-900/60")}`}>
+            <header className="flex items-center gap-3">
+              <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${themed("bg-emerald-500/10 text-emerald-600", "bg-emerald-500/20 text-emerald-200")}`}>
+                <FiFileText size={20} />
+              </span>
+              <div>
+                <p className={`text-xs font-medium uppercase tracking-[0.2em] ${themed("text-slate-500", "text-slate-400")}`}>Total Kejadian</p>
+                <p className="text-2xl font-bold">{summary.totalEvents.toLocaleString("id-ID")}</p>
+              </div>
+            </header>
+          </article>
+
+          <article className={`rounded-3xl border p-5 transition-colors ${themed("border-slate-200 bg-white", "border-slate-800/70 bg-slate-900/60")}`}>
+            <header className="flex items-center gap-3">
+              <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${themed("bg-amber-500/10 text-amber-600", "bg-amber-500/20 text-amber-200")}`}>
+                <FiClock size={20} />
+              </span>
+              <div>
+                <p className={`text-xs font-medium uppercase tracking-[0.2em] ${themed("text-slate-500", "text-slate-400")}`}>Terbaru</p>
+                <p className="text-sm font-semibold">{summary.lastGeneratedAt ? summary.lastGeneratedAt.toLocaleString("id-ID") : "Belum ada analisis"}</p>
+              </div>
+            </header>
+          </article>
+        </section>
+
+        <div className="mx-auto mt-10 grid max-w-8xl gap-8 lg:grid-cols-[minmax(0,320px),minmax(0,1fr)]">
+          <AnalysisHistory title="Riwayat Terakhir" subtitle={results.length ? "10 analisis terbaru Anda." : "Analisis yang sudah berjalan akan muncul di sini."} items={historyItems} isDark={isDark} />
+
+          <section className={`min-h-[260px] overflow-hidden rounded-3xl border transition-colors ${themed("border-slate-200 bg-white", "border-slate-800/70 bg-slate-900/60")}`}>
+            <header className="flex items-center justify-between border-b px-6 py-4 transition-colors">
+              <div>
+                <h2 className="text-lg font-semibold">Semua Analisis</h2>
+                <p className={`text-xs ${themed("text-slate-500", "text-slate-400")}`}>Klik salah satu baris untuk melihat detail.</p>
+              </div>
+              <FiBarChart2 className={themed("text-slate-400", "text-slate-500")} />
+            </header>
+
+            {isLoading ? (
+              <div className={`flex items-center justify-center px-6 py-10 text-sm ${themed("text-slate-500", "text-slate-300")}`}>Memuat data analisis...</div>
+            ) : error ? (
+              <div className={`px-6 py-10 text-center text-sm font-semibold ${themed("text-red-600", "text-red-300")}`}>{error}</div>
+            ) : emptyState ? (
+              <div className={`px-6 py-10 text-center text-sm ${themed("text-slate-500", "text-slate-400")}`}>Belum ada hasil analisis. Jalankan konversi pertama Anda di halaman Convert.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-auto text-sm">
+                  <thead className={themed("bg-slate-100", "bg-slate-800/50")}>
+                    <tr className="text-left">
+                      <th className="px-6 py-3 font-semibold">Nama Berkas</th>
+                      <th className="px-6 py-3 font-semibold">Tanggal Dibuat</th>
+                      <th className="px-6 py-3 font-semibold">Jumlah Kejadian</th>
+                      <th className="px-6 py-3 font-semibold">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((item) => (
+                      <tr key={item.id} className={themed("border-b border-slate-200 hover:bg-slate-50", "border-b border-slate-800/50 hover:bg-slate-800/40")}>
+                        <td className="max-w-xs truncate px-6 py-3">{item.sourceFile || "Tanpa Judul"}</td>
+                        <td className="px-6 py-3">{item.generatedAt ? new Date(item.generatedAt).toLocaleString("id-ID") : "-"}</td>
+                        <td className="px-6 py-3">{(item.recordCount ?? 0).toLocaleString("id-ID")}</td>
+                        <td className="px-6 py-3">
+                          <Link href={`/dashboard/analysis/${item.id}`} className={`text-sm font-semibold transition-colors ${themed("text-sky-600 hover:text-sky-500", "text-sky-300 hover:text-sky-200")}`}>
+                            Lihat Detail
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </div>
   );
-};
-
-export default AnalysisPage;
+}

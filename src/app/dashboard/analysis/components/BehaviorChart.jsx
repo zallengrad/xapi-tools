@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 const BehaviorChart = ({ transitions }) => {
   const edges = transitions ?? [];
   const [positionedNodes, setPositionedNodes] = useState([]);
-  const [svgDimensions, setSvgDimensions] = useState({ width: 1000, height: 700 });
+  const [svgDimensions, setSvgDimensions] = useState({ width: 1600, height: 700 });
   const [hiddenNodes, setHiddenNodes] = useState(() => new Set());
   const [draggedNodeName, setDraggedNodeName] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -39,10 +39,7 @@ const BehaviorChart = ({ transitions }) => {
 
   const visibleNodes = useMemo(() => sortedNodes.filter((name) => !hiddenNodes.has(name)), [hiddenNodes, sortedNodes]);
 
-  const visibleEdges = useMemo(
-    () => edges.filter((edge) => !hiddenNodes.has(edge.from) && !hiddenNodes.has(edge.to)),
-    [edges, hiddenNodes]
-  );
+  const visibleEdges = useMemo(() => edges.filter((edge) => !hiddenNodes.has(edge.from) && !hiddenNodes.has(edge.to)), [edges, hiddenNodes]);
 
   // Hitung degree (jumlah koneksi) setiap node
   const nodeDegrees = useMemo(() => {
@@ -418,11 +415,7 @@ const BehaviorChart = ({ transitions }) => {
               >
                 <input type="checkbox" className="h-3 w-3 accent-blue-600 dark:accent-blue-400" checked={!isHidden} onChange={() => toggleNodeVisibility(name)} />
                 <span>{name}</span>
-                {hasScore && (
-                  <span className="text-[10px] font-normal text-slate-400 dark:text-slate-300">
-                    {score.toFixed(2)}
-                  </span>
-                )}
+                {hasScore && <span className="text-[10px] font-normal text-slate-400 dark:text-slate-300">{score.toFixed(2)}</span>}
               </label>
             );
           })}
@@ -444,107 +437,107 @@ const BehaviorChart = ({ transitions }) => {
             onMouseLeave={handleMouseUp}
             className="border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/30"
           >
-          <defs>
-            <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" className="dark:fill-blue-400" />
-            </marker>
-          </defs>
+            <defs>
+              <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" className="dark:fill-blue-400" />
+              </marker>
+            </defs>
 
-          {/* Gambar Edges dengan Orthogonal Routing */}
-          <g>
-            {Array.from(edgeGroups.entries()).map(([key, group]) => {
-              return group.map((item, idx) => {
-                const { edge, index, isSelf } = item;
-                const fromNode = nodeMap[edge.from];
-                const toNode = nodeMap[edge.to];
-                if (!fromNode || !toNode) return null;
+            {/* Gambar Edges dengan Orthogonal Routing */}
+            <g>
+              {Array.from(edgeGroups.entries()).map(([key, group]) => {
+                return group.map((item, idx) => {
+                  const { edge, index, isSelf } = item;
+                  const fromNode = nodeMap[edge.from];
+                  const toNode = nodeMap[edge.to];
+                  if (!fromNode || !toNode) return null;
 
-                // Self-loop
-                if (isSelf) {
-                  const loopRadius = 25;
-                  const loopOffset = 5;
+                  // Self-loop
+                  if (isSelf) {
+                    const loopRadius = 25;
+                    const loopOffset = 5;
 
-                  // Cek apakah node di bagian bawah canvas
-                  const isBottomHalf = fromNode.y > svgDimensions.height / 2;
+                    // Cek apakah node di bagian bawah canvas
+                    const isBottomHalf = fromNode.y > svgDimensions.height / 2;
 
-                  let startX, startY, endX, endY, textX, textY, pathData;
+                    let startX, startY, endX, endY, textX, textY, pathData;
 
-                  if (isBottomHalf) {
-                    // Loop di bawah node
-                    startX = fromNode.x;
-                    startY = fromNode.y + nodeHeight / 2 + loopOffset;
-                    endX = fromNode.x + nodeWidth / 4;
-                    endY = fromNode.y + nodeHeight / 2 + loopOffset;
-                    textX = fromNode.x + loopRadius;
-                    textY = fromNode.y + nodeHeight / 2 + loopRadius + 18;
-                    pathData = `M ${startX},${startY} A ${loopRadius},${loopRadius} 0 1,0 ${endX},${endY}`;
-                  } else {
-                    // Loop di atas node (default)
-                    startX = fromNode.x;
-                    startY = fromNode.y - nodeHeight / 2 - loopOffset;
-                    endX = fromNode.x + nodeWidth / 4;
-                    endY = fromNode.y - nodeHeight / 2 - loopOffset;
-                    textX = fromNode.x + loopRadius;
-                    textY = fromNode.y - nodeHeight / 2 - loopRadius - 8;
-                    pathData = `M ${startX},${startY} A ${loopRadius},${loopRadius} 0 1,1 ${endX},${endY}`;
+                    if (isBottomHalf) {
+                      // Loop di bawah node
+                      startX = fromNode.x;
+                      startY = fromNode.y + nodeHeight / 2 + loopOffset;
+                      endX = fromNode.x + nodeWidth / 4;
+                      endY = fromNode.y + nodeHeight / 2 + loopOffset;
+                      textX = fromNode.x + loopRadius;
+                      textY = fromNode.y + nodeHeight / 2 + loopRadius + 18;
+                      pathData = `M ${startX},${startY} A ${loopRadius},${loopRadius} 0 1,0 ${endX},${endY}`;
+                    } else {
+                      // Loop di atas node (default)
+                      startX = fromNode.x;
+                      startY = fromNode.y - nodeHeight / 2 - loopOffset;
+                      endX = fromNode.x + nodeWidth / 4;
+                      endY = fromNode.y - nodeHeight / 2 - loopOffset;
+                      textX = fromNode.x + loopRadius;
+                      textY = fromNode.y - nodeHeight / 2 - loopRadius - 8;
+                      pathData = `M ${startX},${startY} A ${loopRadius},${loopRadius} 0 1,1 ${endX},${endY}`;
+                    }
+
+                    return (
+                      <g key={`edge-${index}-self`}>
+                        <path d={pathData} stroke="#3b82f6" className="dark:stroke-blue-400" strokeWidth="2" fill="none" markerEnd="url(#arrowhead)" />
+                        <rect x={textX - 18} y={textY - 10} width="36" height="20" rx="4" fill="white" stroke="#3b82f6" strokeWidth="1.5" className="dark:fill-slate-800 dark:stroke-blue-400" />
+                        <text x={textX} y={textY + 4} textAnchor="middle" className="text-[10px] fill-blue-600 dark:fill-blue-400 font-bold">
+                          {edge.z.toFixed(2)}
+                        </text>
+                      </g>
+                    );
                   }
 
+                  // Orthogonal routing untuk edges normal
+                  const totalSlots = group.filter((g) => !g.isSelf).length;
+                  const slotIndex = group.filter((g) => !g.isSelf).findIndex((g) => g.index === index);
+                  const { pathString, labelX, labelY } = getOrthogonalPath(fromNode, toNode, slotIndex, totalSlots);
+
                   return (
-                    <g key={`edge-${index}-self`}>
-                      <path d={pathData} stroke="#3b82f6" className="dark:stroke-blue-400" strokeWidth="2" fill="none" markerEnd="url(#arrowhead)" />
-                      <rect x={textX - 18} y={textY - 10} width="36" height="20" rx="4" fill="white" stroke="#3b82f6" strokeWidth="1.5" className="dark:fill-slate-800 dark:stroke-blue-400" />
-                      <text x={textX} y={textY + 4} textAnchor="middle" className="text-[10px] fill-blue-600 dark:fill-blue-400 font-bold">
+                    <g key={`edge-${index}`}>
+                      <path d={pathString} stroke="#3b82f6" className="dark:stroke-blue-400" strokeWidth="2" fill="none" markerEnd="url(#arrowhead)" strokeLinejoin="round" />
+                      <rect x={labelX - 18} y={labelY - 10} width="36" height="20" rx="4" fill="white" stroke="#3b82f6" strokeWidth="1.5" className="dark:fill-slate-800 dark:stroke-blue-400" />
+                      <text x={labelX} y={labelY + 4} textAnchor="middle" className="text-[10px] fill-blue-600 dark:fill-blue-400 font-bold">
                         {edge.z.toFixed(2)}
                       </text>
                     </g>
                   );
-                }
+                });
+              })}
+            </g>
 
-                // Orthogonal routing untuk edges normal
-                const totalSlots = group.filter((g) => !g.isSelf).length;
-                const slotIndex = group.filter((g) => !g.isSelf).findIndex((g) => g.index === index);
-                const { pathString, labelX, labelY } = getOrthogonalPath(fromNode, toNode, slotIndex, totalSlots);
-
+            {/* Gambar Nodes */}
+            <g>
+              {positionedNodes.map((node) => {
+                const degree = nodeDegrees[node.name] || 0;
+                const isHub = degree > 4;
                 return (
-                  <g key={`edge-${index}`}>
-                    <path d={pathString} stroke="#3b82f6" className="dark:stroke-blue-400" strokeWidth="2" fill="none" markerEnd="url(#arrowhead)" strokeLinejoin="round" />
-                    <rect x={labelX - 18} y={labelY - 10} width="36" height="20" rx="4" fill="white" stroke="#3b82f6" strokeWidth="1.5" className="dark:fill-slate-800 dark:stroke-blue-400" />
-                    <text x={labelX} y={labelY + 4} textAnchor="middle" className="text-[10px] fill-blue-600 dark:fill-blue-400 font-bold">
-                      {edge.z.toFixed(2)}
+                  <g key={node.name} transform={`translate(${node.x}, ${node.y})`} onMouseDown={(e) => handleMouseDown(e, node.name)} style={{ cursor: "grab" }} className={draggedNodeName === node.name ? "grabbing" : ""}>
+                    <rect
+                      x={-nodeWidth / 2}
+                      y={-nodeHeight / 2}
+                      width={nodeWidth}
+                      height={nodeHeight}
+                      rx={10}
+                      ry={10}
+                      fill={isHub ? "#dbeafe" : "#ffffff"}
+                      stroke={isHub ? "#2563eb" : "#64748b"}
+                      className="dark:fill-slate-800 dark:stroke-slate-500"
+                      strokeWidth={isHub ? "2.5" : "2"}
+                    />
+                    {isHub && <circle cx={nodeWidth / 2 - 8} cy={-nodeHeight / 2 + 8} r="4" fill="#ef4444" className="dark:fill-red-500" />}
+                    <text y={5} textAnchor="middle" className="text-[10px] font-bold fill-gray-800 dark:fill-slate-200 pointer-events-none">
+                      {node.name}
                     </text>
                   </g>
                 );
-              });
-            })}
-          </g>
-
-          {/* Gambar Nodes */}
-          <g>
-            {positionedNodes.map((node) => {
-              const degree = nodeDegrees[node.name] || 0;
-              const isHub = degree > 4;
-              return (
-                <g key={node.name} transform={`translate(${node.x}, ${node.y})`} onMouseDown={(e) => handleMouseDown(e, node.name)} style={{ cursor: "grab" }} className={draggedNodeName === node.name ? "grabbing" : ""}>
-                  <rect
-                    x={-nodeWidth / 2}
-                    y={-nodeHeight / 2}
-                    width={nodeWidth}
-                    height={nodeHeight}
-                    rx={10}
-                    ry={10}
-                    fill={isHub ? "#dbeafe" : "#ffffff"}
-                    stroke={isHub ? "#2563eb" : "#64748b"}
-                    className="dark:fill-slate-800 dark:stroke-slate-500"
-                    strokeWidth={isHub ? "2.5" : "2"}
-                  />
-                  {isHub && <circle cx={nodeWidth / 2 - 8} cy={-nodeHeight / 2 + 8} r="4" fill="#ef4444" className="dark:fill-red-500" />}
-                  <text y={5} textAnchor="middle" className="text-[10px] font-bold fill-gray-800 dark:fill-slate-200 pointer-events-none">
-                    {node.name}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
+              })}
+            </g>
           </svg>
         )}
         <style jsx>{`

@@ -45,20 +45,6 @@ export async function GET(request: NextRequest) {
     }
 
     const url = request.nextUrl;
-    const id = url.searchParams.get("id");
-
-    if (id) {
-      const row = await prisma.analysisResult.findFirst({
-        where: { id, userId: session.user.id },
-      });
-
-      if (!row) {
-        return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
-      }
-
-      return NextResponse.json(row);
-    }
-
     const limitParam = url.searchParams.get("limit");
     const limit = limitParam ? Math.min(Number(limitParam) || 5, 50) : undefined;
 

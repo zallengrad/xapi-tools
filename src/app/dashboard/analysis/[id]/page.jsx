@@ -26,7 +26,7 @@ export default function AnalysisDetailPage({ params }) {
       setError("");
 
       try {
-        const response = await fetch(`/api/analysis?id=${id}`);
+        const response = await fetch(`/api/analysis/${id}`);
 
         if (!response.ok) {
           if (response.status === 404) {

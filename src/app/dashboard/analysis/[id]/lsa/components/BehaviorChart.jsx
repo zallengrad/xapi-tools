@@ -5,12 +5,13 @@ import { useState, useEffect, useMemo, useRef } from "react";
 const BehaviorChart = ({ transitions }) => {
   const edges = transitions ?? [];
   const [positionedNodes, setPositionedNodes] = useState([]);
-  const [svgDimensions, setSvgDimensions] = useState({ width: 1600, height: 700 });
+  const [svgDimensions, setSvgDimensions] = useState({ width: 1000, height: 600 });
   const [hiddenNodes, setHiddenNodes] = useState(() => new Set());
   const [draggedNodeName, setDraggedNodeName] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isSimulating, setIsSimulating] = useState(false);
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
   const animationRef = useRef(null);
 
   const nodes = useMemo(() => {
@@ -206,6 +207,34 @@ const BehaviorChart = ({ transitions }) => {
       }
     };
   }, [visibleNodes, visibleEdges, svgDimensions]);
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (!containerRef.current) return;
+      const { width } = containerRef.current.getBoundingClientRect();
+      if (!width) return;
+      const clampedWidth = Math.max(320, width);
+      const aspectRatio = svgDimensions.height / svgDimensions.width || 0.6;
+      const newHeight = Math.max(360, Math.round(clampedWidth * aspectRatio));
+      setSvgDimensions((prev) => {
+        if (prev.width === clampedWidth && prev.height === newHeight) {
+          return prev;
+        }
+        return { width: clampedWidth, height: newHeight };
+      });
+    };
+
+    updateDimensions();
+
+    const observer = new ResizeObserver(updateDimensions);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [svgDimensions.height, svgDimensions.width]);
 
   const getSvgCoordinates = (event) => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -421,7 +450,7 @@ const BehaviorChart = ({ transitions }) => {
           })}
         </div>
       </div>
-      <div className="mt-6 flex justify-center overflow-auto">
+      <div ref={containerRef} className="mt-6 flex justify-center overflow-auto">
         {allNodesHidden ? (
           <div className="flex min-h-[300px] w-full max-w-4xl items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-300">
             Semua node disembunyikan. Aktifkan kembali salah satu node untuk melihat diagram.

@@ -88,7 +88,7 @@ export default function LsaDetailPage({ params }) {
   // karena itu sudah ada di 'layout.jsx'
 
   return (
-    <div className={`relative transition-colors duration-300 ${themed("text-slate-900", "text-slate-100")}`}>
+    <div className={`p-6 relative transition-colors duration-300 ${themed("text-slate-900", "text-slate-100")}`}>
       {/* Kita bisa hapus <header> nama file karena sudah ada di layout induk */}
 
       {/* Tombol kembali bisa dimodifikasi jika mau */}

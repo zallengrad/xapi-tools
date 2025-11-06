@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -15,48 +12,84 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// LACI LAMA ANDA - KITA MODIFIKASI SEDIKIT
+// ===========================================
+// == INI ADALAH MODEL INDUK (FILING CABINET) ==
+// ===========================================
 model AnalysisResult {
   id          String   @id @default(uuid())
   sourceFile  String
-  recordCount Int
+  recordCount Int // Total baris event yang diproses
   generatedAt DateTime
-  payload     Json
   createdAt   DateTime @default(now())
 
-  // --- INI BARIS YANG KITA TAMBAHKAN ---
-  // Kita tambahkan "kolom" untuk menyimpan ID pemilik
+  // Relasi ke Pemilik (User)
   userId String
-  // Kita buat "relasi" atau "kabel penghubung" ke laci User
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // -------------------------------------
+
+  // --- PERUBAHAN UTAMA ---
+  // Hapus 'payload Json'
+  // Tambahkan relasi one-to-one ke "laci" data kita
+  lsaResult      LsaResult?
+  overviewResult OverviewResult?
+  // -----------------------
+
+  @@index([userId]) // Tambahkan index untuk query yang lebih cepat
 }
 
+// ===========================================
+// == LACI 1: DATA LSA (Tabel Baru) ==
+// ===========================================
+model LsaResult {
+  id    String @id @default(uuid())
+  payload Json // Di sini kita simpan data LSA (observed, zScores, dll)
+
+  // Relasi one-to-one ke Induk
+  analysisResultId String         @unique // @unique sangat penting untuk one-to-one
+  analysisResult   AnalysisResult @relation(fields: [analysisResultId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================
+// == LACI 2: DATA OVERVIEW (Tabel Baru) ==
+// ===========================================
+model OverviewResult {
+  id    String @id @default(uuid())
+  
+  // KPI (Sekarang menjadi kolom, bisa di-query!)
+  totalEvents    Int
+  activeUsers    Int
+  uniqueContents Int
+  topVerb        String
+
+  // Data Grafik (Kita simpan sebagai JSON karena ini array)
+  dailyActivity Json // Akan berisi: [{ date: "...", events: 123 }]
+  topVerbs      Json // Akan berisi: [{ verb: "...", count: 456 }]
+  topObjects    Json // Akan berisi: [{ name: "...", count: 789 }]
+
+  // Relasi one-to-one ke Induk
+  analysisResultId String         @unique // @unique sangat penting untuk one-to-one
+  analysisResult   AnalysisResult @relation(fields: [analysisResultId], references: [id], onDelete: Cascade)
+}
+
+
 // ===================================================
-// == LACI-LACI BARU UNTUK SISTEM KEAMANAN (NEXTAUTH) ==
+// == MODEL USER DAN AUTH (Tetap Sama) ==
 // ===================================================
 
-// Laci untuk menyimpan data inti pengguna (nama, email, dll)
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  hashedPassword String?
-
-  // --- INI BARIS YANG KITA TAMBAHKAN ---
-  // Ini adalah "daftar" agar setiap pengguna bisa melihat
-  // semua hasil analisis yang mereka miliki
+  id              String    @id @default(cuid())
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
+  hashedPassword  String?
+  
+  // Relasi ke semua hasil analisis miliknya
   analysisResults AnalysisResult[]
-  // -------------------------------------
 
-  // Ini baris bawaan NextAuth untuk menghubungkan ke laci lain
   accounts Account[]
   sessions Session[]
 }
 
-// Laci untuk menyimpan info login (misal: "User A login via Google")
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -70,13 +103,11 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
-// Laci untuk mencatat sesi login yang sedang aktif (seperti "kartu akses" sementara)
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -85,7 +116,6 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// Laci untuk token khusus (misal: saat reset password atau verifikasi email)
 model VerificationToken {
   identifier String
   token      String   @unique

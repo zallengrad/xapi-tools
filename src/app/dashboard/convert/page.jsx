@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import Papa from "papaparse";
 import { assignBehaviorCode } from "../../../lib/behaviorCode";
 import { runLSA } from "../../../lib/lsa";
+import { calculateOverviewData } from "../../../lib/overviewCalculator";
 
 // manajemen state
 export default function ConvertPage() {
@@ -100,7 +101,7 @@ export default function ConvertPage() {
     }
 
     setIsUploading(true);
-    setMessage(`Mengunggah ${file.name}...`);
+    setMessage(`1/4: Membaca file ${file.name}...`);
 
     try {
       const results = await new Promise((resolve, reject) => {
@@ -112,13 +113,18 @@ export default function ConvertPage() {
         });
       });
 
+      setMessage("2/4: Membersihkan & menormalisasi data...");
       const normalizedRows = results.data.map((row) => normalizeRow(row));
 
+      // --- JALUR A: Kalkulasi Overview ---
+      setMessage("3/4: Menghitung data overview (KPI, Grafik)...");
+      const overviewResult = calculateOverviewData(normalizedRows);
+
+      // --- JALUR B: Kalkulasi LSA ---
       const codedData = normalizedRows.map((row) => ({
         ...row,
         behavior_code: assignBehaviorCode(row),
       }));
-
       const cleanData = codedData.filter((row) => row.behavior_code !== null);
 
       if (cleanData.length === 0) {
@@ -127,15 +133,14 @@ export default function ConvertPage() {
         return;
       }
 
+      setMessage("3/4: Menjalankan Lag Sequential Analysis (LSA)...");
       const sortedData = cleanData.sort((a, b) => {
         if (a.actor_id < b.actor_id) return -1;
         if (a.actor_id > b.actor_id) return 1;
-
         const sessionA = a.session_id || "";
         const sessionB = b.session_id || "";
         if (sessionA < sessionB) return -1;
         if (sessionA > sessionB) return 1;
-
         const timeA = new Date(a.timestamp).getTime();
         const timeB = new Date(b.timestamp).getTime();
         return timeA - timeB;
@@ -147,37 +152,51 @@ export default function ConvertPage() {
         kejadian: row.behavior_code,
       }));
 
-      const analysisResult = runLSA(lsaFormattedData);
+      const lsaResult = runLSA(lsaFormattedData);
+
+      // --- LANGKAH 5.3: Gabungkan Hasil (Payload Baru) ---
       const payload = {
-        generatedAt: new Date().toISOString(),
-        sourceFile: file.name,
-        recordCount: lsaFormattedData.length,
-        analysis: analysisResult,
+        // Data untuk Induk (AnalysisResult)
+        fileInfo: {
+          generatedAt: new Date().toISOString(),
+          sourceFile: file.name,
+          recordCount: lsaFormattedData.length, // Sesuai logika lama Anda
+        },
+        // Data untuk Laci LSA (LsaResult)
+        lsaData: lsaResult,
+        // Data untuk Laci Overview (OverviewResult)
+        overviewData: overviewResult,
       };
 
+      setMessage("4/4: Menyimpan hasil analisis ke database...");
+
+      // --- LANGKAH 5.4: Kirim Payload Baru ke API ---
       const response = await fetch("/api/analysis", {
+        // API tetap sama
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload), // Body sekarang berisi payload baru
       });
 
       if (!response.ok) {
-        throw new Error("Gagal menyimpan hasil analisis");
+        const errData = await response.json();
+        throw new Error(errData.error || "Gagal menyimpan hasil analisis");
       }
 
-      const { id } = await response.json();
+      const { id } = await response.json(); // Dapatkan ID dari Induk
 
       setMessage(`Konversi berhasil! Mengarahkan ke halaman analisis...`);
       setShowModal(true);
       setIsUploading(false);
 
+      // --- LANGKAH 5.5: Arahkan ke URL Baru ---
       setTimeout(() => {
-        router.push(`/dashboard/analysis/${id}`);
+        router.push(`/dashboard/analysis/${id}/overview`);
       }, 1200);
     } catch (error) {
-      console.error("Error parsing CSV:", error);
+      console.error("Error processing file:", error);
       if (error?.name === "QuotaExceededError") {
-        setMessage("Data terlalu besar untuk disimpan di browser. Kurangi ukuran file atau jalankan analisis melalui backend.");
+        setMessage("Data terlalu besar untuk diproses di browser.");
       } else if (error instanceof Error) {
         setMessage(error.message);
       } else {

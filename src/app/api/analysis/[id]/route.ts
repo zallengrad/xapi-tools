@@ -9,6 +9,9 @@ interface RouteParams {
   params: { id: string };
 }
 
+// =========================================================
+// == FUNGSI GET (READ DETAIL) - INI YANG KITA UBAH ==
+// =========================================================
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,14 +22,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { id } = params;
 
+    // --- PERUBAHAN UTAMA ADA DI SINI ---
+    // Kita gunakan 'include' untuk mengambil data dari tabel anak
     const row = await prisma.analysisResult.findFirst({
       where: { id, userId: session.user.id },
+      include: {
+        lsaResult: true, // "Sertakan data dari LsaResult"
+        overviewResult: true, // "Sertakan data dari OverviewResult"
+      },
     });
+    // ------------------------------------
 
     if (!row) {
       return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
     }
 
+    // 'row' sekarang akan berisi objek seperti:
+    // {
+    //   id: "...",
+    //   sourceFile: "...",
+    //   lsaResult: { id: "...", payload: { ... } },
+    //   overviewResult: { id: "...", totalEvents: 123, ... }
+    // }
     return NextResponse.json(row);
   } catch (error) {
     console.error("GET /api/analysis/[id] error:", error);

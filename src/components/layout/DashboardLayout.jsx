@@ -38,19 +38,12 @@ export default function DashboardLayout({ children }) {
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
 
       {/* Overlay untuk layar kecil */}
-      {isSidebarOpen && (
-        <button
-          type="button"
-          aria-label="Tutup navigasi"
-          onClick={closeSidebar}
-          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm transition lg:hidden"
-        />
-      )}
+      {isSidebarOpen && <button type="button" aria-label="Tutup navigasi" onClick={closeSidebar} className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm transition lg:hidden" />}
 
       <div className="flex flex-1 flex-col lg:pl-64">
         <Header onToggleSidebar={toggleSidebar} />
 
-        <main className="flex-1 p-4 transition-colors duration-300 sm:p-6">{children}</main>
+        <main className="flex-1 transition-colors duration-300 ">{children}</main>
       </div>
     </div>
   );

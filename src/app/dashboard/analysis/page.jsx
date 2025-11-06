@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useThemeContext } from "../../../context/theme/ThemeContext";
+// Perhatikan: Pastikan path impor ini benar setelah Anda memindahkan file
 import AnalysisHistory from "./components/AnalysisHistory";
 import { FiBarChart2, FiClock, FiFileText, FiLayers, FiRefreshCcw } from "react-icons/fi";
 
@@ -20,7 +21,7 @@ export default function AnalysisOverviewPage() {
       setError("");
 
       try {
-        const response = await fetch("/api/analysis");
+        const response = await fetch("/api/analysis"); //
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -75,7 +76,9 @@ export default function AnalysisOverviewPage() {
       return {
         id: item.id,
         title: item.sourceFile || "Tanpa Judul",
-        href: `/dashboard/analysis/${item.id}`,
+        // --- PERUBAHAN DI SINI ---
+        href: `/dashboard/analysis/${item.id}/overview`, // Arahkan ke tab overview
+        // -------------------------
         description: transitions.length
           ? `Transisi signifikan: ${transitions
               .slice(0, 2)
@@ -106,7 +109,7 @@ export default function AnalysisOverviewPage() {
           </div>
 
           <Link
-            href="/dashboard/convert"
+            href="/dashboard/convert" //
             className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors ${themed("bg-sky-600 text-white hover:bg-sky-500", "bg-sky-500/90 text-white hover:bg-sky-400")}`}
           >
             <FiRefreshCcw />
@@ -153,7 +156,7 @@ export default function AnalysisOverviewPage() {
         </section>
 
         <div className="mx-auto mt-10 grid max-w-8xl gap-8 lg:grid-cols-[minmax(0,320px),minmax(0,1fr)]">
-          <AnalysisHistory title="Riwayat Terakhir" subtitle={results.length ? "10 analisis terbaru Anda." : "Analisis yang sudah berjalan akan muncul di sini."} items={historyItems} isDark={isDark} />
+          {/* <AnalysisHistory title="Riwayat Terakhir" subtitle={results.length ? "10 analisis terbaru Anda." : "Analisis yang sudah berjalan akan muncul di sini."} items={historyItems} isDark={isDark} /> */}
 
           <section className={`min-h-[260px] overflow-hidden rounded-3xl border transition-colors ${themed("border-slate-200 bg-white", "border-slate-800/70 bg-slate-900/60")}`}>
             <header className="flex items-center justify-between border-b px-6 py-4 transition-colors">
@@ -188,9 +191,11 @@ export default function AnalysisOverviewPage() {
                         <td className="px-6 py-3">{item.generatedAt ? new Date(item.generatedAt).toLocaleString("id-ID") : "-"}</td>
                         <td className="px-6 py-3">{(item.recordCount ?? 0).toLocaleString("id-ID")}</td>
                         <td className="px-6 py-3">
-                          <Link href={`/dashboard/analysis/${item.id}`} className={`text-sm font-semibold transition-colors ${themed("text-sky-600 hover:text-sky-500", "text-sky-300 hover:text-sky-200")}`}>
+                          {/* --- PERUBAHAN DI SINI --- */}
+                          <Link href={`/dashboard/analysis/${item.id}/overview`} className={`text-sm font-semibold transition-colors ${themed("text-sky-600 hover:text-sky-500", "text-sky-300 hover:text-sky-200")}`}>
                             Lihat Detail
                           </Link>
+                          {/* ------------------------- */}
                         </td>
                       </tr>
                     ))}

@@ -13,10 +13,11 @@ import {
   FiUser, // Fallback icon
   FiLoader, // Loading icon
   FiChevronDown,
+  FiX,
 } from "react-icons/fi";
 
 // Komponen internal untuk satu item link navigasi
-function NavLink({ href, icon: Icon, children, isDark }) {
+function NavLink({ href, icon: Icon, children, isDark, onNavigate }) {
   const pathname = usePathname();
   const isActive = pathname === href;
 
@@ -24,14 +25,18 @@ function NavLink({ href, icon: Icon, children, isDark }) {
   const inactiveClass = isDark ? "text-slate-400 hover:bg-slate-800" : "text-slate-600 hover:bg-slate-100";
 
   return (
-    <Link href={href} className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive ? activeClass : inactiveClass}`}>
+    <Link
+      href={href}
+      onClick={onNavigate}
+      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive ? activeClass : inactiveClass}`}
+    >
       <Icon className="h-5 w-5" />
       <span>{children}</span>
     </Link>
   );
 }
 
-function AnalysisNav({ items, isDark, isLoading }) {
+function AnalysisNav({ items, isDark, isLoading, onNavigate }) {
   const pathname = usePathname();
   const isActive = pathname.startsWith("/dashboard/analysis");
 
@@ -71,7 +76,7 @@ function AnalysisNav({ items, isDark, isLoading }) {
           ) : items.length ? (
             items.map((item) => (
               <li key={item.id}>
-                <Link href={item.href} className={`block px-4 py-2 transition-colors ${itemClass}`}>
+                <Link href={item.href} onClick={onNavigate} className={`block px-4 py-2 transition-colors ${itemClass}`}>
                   <span className="line-clamp-1">{item.title}</span>
                 </Link>
               </li>
@@ -83,7 +88,7 @@ function AnalysisNav({ items, isDark, isLoading }) {
           )}
         </ul>
         <div className="border-t border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition-colors dark:border-slate-800">
-          <Link href="/dashboard/analysis" className={`inline-flex items-center gap-2 ${seeAllClass}`}>
+          <Link href="/dashboard/analysis" onClick={onNavigate} className={`inline-flex items-center gap-2 ${seeAllClass}`}>
             Lihat Semua
           </Link>
         </div>
@@ -93,11 +98,18 @@ function AnalysisNav({ items, isDark, isLoading }) {
 }
 
 // Komponen Sidebar Utama
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose }) {
   const { data: session, status } = useSession();
   const { isDark } = useThemeContext();
   const [recentAnalyses, setRecentAnalyses] = useState([]);
   const [isLoadingAnalyses, setIsLoadingAnalyses] = useState(true);
+
+  const handleNavigate = () => {
+    if (typeof onClose === "function" && typeof window !== "undefined" && window.innerWidth < 1024) {
+      onClose();
+    }
+  };
+  usePathname(); // trigger rerender on route change for active states
 
   const navLinks = [
     { href: "/dashboard/convert", label: "Upload Data", icon: FiUploadCloud },
@@ -143,25 +155,39 @@ export default function Sidebar() {
 
   const sidebarShell = isDark ? "border-slate-800 bg-slate-900 text-slate-100" : "border-slate-200 bg-white text-slate-900";
 
+  const translateClass = isOpen ? "translate-x-0" : "-translate-x-full";
+
   return (
-    <aside className={`fixed left-0 top-0 flex h-full w-64 flex-col border-r ${sidebarShell} transition-colors duration-300`}>
+    <aside
+      className={`fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r ${sidebarShell} transform transition-transform duration-300 lg:translate-x-0 lg:transition-none ${translateClass}`}
+      aria-hidden={!isOpen}
+    >
       {/* 1. Logo/Judul Aplikasi */}
-      <div className={`flex h-16 shrink-0 items-center border-b px-6 transition-colors duration-300 ${isDark ? "border-slate-800" : "border-slate-200"}`}>
+      <div className={`flex h-16 shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 ${isDark ? "border-slate-800" : "border-slate-200"}`}>
         <Link href="/dashboard/convert" className="flex items-center gap-2">
           {/* Ganti dengan logo Anda jika ada */}
           <span className={`text-xl font-bold transition-colors ${isDark ? "text-sky-500" : "text-sky-600"}`}>DevLens</span>
         </Link>
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Tutup navigasi"
+          className={`rounded-md p-2 transition-colors lg:hidden ${isDark ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800"}`}
+        >
+          <FiX className="h-5 w-5" />
+        </button>
       </div>
 
       {/* 2. Area Navigasi (Bisa di-scroll jika link banyak) */}
       <div className="flex-1 overflow-y-auto">
         <nav className="flex flex-col gap-1 p-4">
           {navLinks.map((link) => (
-            <NavLink key={link.href} href={link.href} icon={link.icon} isDark={isDark}>
+            <NavLink key={link.href} href={link.href} icon={link.icon} isDark={isDark} onNavigate={handleNavigate}>
               {link.label}
             </NavLink>
           ))}
-          <AnalysisNav items={recentAnalyses} isDark={isDark} isLoading={isLoadingAnalyses} />
+          <AnalysisNav items={recentAnalyses} isDark={isDark} isLoading={isLoadingAnalyses} onNavigate={handleNavigate} />
         </nav>
       </div>
 

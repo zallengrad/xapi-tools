@@ -15,6 +15,7 @@ import Papa from "papaparse";
 import { assignBehaviorCode } from "../../../lib/behaviorCode";
 import { runLSA } from "../../../lib/lsa";
 import { calculateOverviewData } from "../../../lib/overviewCalculator";
+import { calculateFunnelAndSessionData } from "../../../lib/funnelCalculator";
 
 // manajemen state
 export default function ConvertPage() {
@@ -101,7 +102,7 @@ export default function ConvertPage() {
     }
 
     setIsUploading(true);
-    setMessage(`1/4: Membaca file ${file.name}...`);
+    setMessage(`1/6: Membaca file ${file.name}...`);
 
     try {
       const results = await new Promise((resolve, reject) => {
@@ -113,14 +114,18 @@ export default function ConvertPage() {
         });
       });
 
-      setMessage("2/4: Membersihkan & menormalisasi data...");
+      setMessage("2/6: Membersihkan & menormalisasi data...");
       const normalizedRows = results.data.map((row) => normalizeRow(row));
 
       // --- JALUR A: Kalkulasi Overview ---
-      setMessage("3/4: Menghitung data overview (KPI, Grafik)...");
+      setMessage("3/6: Menghitung data overview (KPI, Grafik)...");
       const overviewResult = calculateOverviewData(normalizedRows);
 
+      setMessage("4/6: Menghitung funnel pengguna & metrik sesi...");
+      const funnelResult = calculateFunnelAndSessionData(normalizedRows);
+
       // --- JALUR B: Kalkulasi LSA ---
+      setMessage("5/6: Menjalankan analisis LSA...");
       const codedData = normalizedRows.map((row) => ({
         ...row,
         behavior_code: assignBehaviorCode(row),
@@ -166,9 +171,11 @@ export default function ConvertPage() {
         lsaData: lsaResult,
         // Data untuk Laci Overview (OverviewResult)
         overviewData: overviewResult,
+        // Data untuk Laci Funnel (FunnelResult)
+        funnelData: funnelResult,
       };
 
-      setMessage("4/4: Menyimpan hasil analisis ke database...");
+      setMessage("6/6: Menyimpan hasil analisis ke database...");
 
       // --- LANGKAH 5.4: Kirim Payload Baru ke API ---
       const response = await fetch("/api/analysis", {

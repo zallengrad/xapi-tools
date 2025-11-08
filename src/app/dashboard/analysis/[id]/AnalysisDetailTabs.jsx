@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FiLayout, FiShare2 } from "react-icons/fi";
+import { FiLayout, FiShare2, FiFilter } from "react-icons/fi";
 
 // Komponen ini menerima 'analysisId' agar tahu harus mengarah ke mana
 export default function AnalysisDetailTabs({ analysisId }) {
@@ -18,6 +18,7 @@ export default function AnalysisDetailTabs({ analysisId }) {
   const tabs = [
     { name: "Gambaran Umum", href: `/dashboard/analysis/${analysisId}/overview`, icon: FiLayout },
     { name: "Analisis LSA", href: `/dashboard/analysis/${analysisId}/lsa`, icon: FiShare2 },
+    { name: "Analisis Funnel", href: `/dashboard/analysis/${analysisId}/funnel`, icon: FiFilter },
   ];
 
   return (

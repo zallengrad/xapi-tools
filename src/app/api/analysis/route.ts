@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Terima payload dengan struktur baru
-    const { fileInfo, lsaData, overviewData } = await request.json();
+    const { fileInfo, lsaData, overviewData, funnelData } = await request.json();
 
     // 2. Validasi payload baru
-    if (!fileInfo || !lsaData || !overviewData) {
+    if (!fileInfo || !lsaData || !overviewData || !funnelData) {
       return NextResponse.json({ error: "Payload tidak lengkap" }, { status: 400 });
     }
 
@@ -55,6 +55,18 @@ export async function POST(request: NextRequest) {
         data: {
           payload: lsaData, // Simpan JSON LSA di sini
           // Hubungkan ke Induk yang baru dibuat
+          analysisResultId: analysis.id,
+        },
+      });
+
+      // Langkah D: Buat data Laci Funnel
+      await tx.funnelResult.create({
+        data: {
+          funnelSteps: funnelData.funnelSteps,
+          avgSessionDuration: funnelData.avgSessionDuration,
+          totalSessions: funnelData.totalSessions,
+          avgEventsPerSession: funnelData.avgEventsPerSession,
+          sessionDurationHistogram: funnelData.sessionDurationHistogram,
           analysisResultId: analysis.id,
         },
       });

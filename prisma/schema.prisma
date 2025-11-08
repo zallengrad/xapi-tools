@@ -31,6 +31,7 @@ model AnalysisResult {
   // Tambahkan relasi one-to-one ke "laci" data kita
   lsaResult      LsaResult?
   overviewResult OverviewResult?
+  funnelResult   FunnelResult?
   // -----------------------
 
   @@index([userId]) // Tambahkan index untuk query yang lebih cepat
@@ -67,6 +68,22 @@ model OverviewResult {
 
   // Relasi one-to-one ke Induk
   analysisResultId String         @unique // @unique sangat penting untuk one-to-one
+  analysisResult   AnalysisResult @relation(fields: [analysisResultId], references: [id], onDelete: Cascade)
+}
+
+// ===========================================
+// == LACI 3: DATA FUNNEL & SESI (Baru) ==
+// ===========================================
+model FunnelResult {
+  id    String @id @default(uuid())
+
+  funnelSteps             Json   // [{ stage: 'initialized', count: 12000, rate: 1.0, dropOff: 0 }]
+  avgSessionDuration      Float  // Dalam menit
+  totalSessions           Int
+  avgEventsPerSession     Float
+  sessionDurationHistogram Json  // [{ range: '0-5m', count: 150 }, ...]
+
+  analysisResultId String         @unique
   analysisResult   AnalysisResult @relation(fields: [analysisResultId], references: [id], onDelete: Cascade)
 }
 

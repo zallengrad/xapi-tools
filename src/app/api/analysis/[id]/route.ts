@@ -29,6 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       include: {
         lsaResult: true, // "Sertakan data dari LsaResult"
         overviewResult: true, // "Sertakan data dari OverviewResult"
+        funnelResult: true, // Sertakan data funnel & sesi
       },
     });
     // ------------------------------------

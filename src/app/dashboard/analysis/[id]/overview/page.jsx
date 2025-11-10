@@ -84,7 +84,7 @@ export default function OverviewPage({ params }) {
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div>
           {/* Judul ini bisa kita hapus/modifikasi karena sudah ada di layout induk */}
-          <h1 className={`text-xl sm:text-2xl font-bold ${themed("text-slate-900", "text-white")}`}>Gambaran Umum</h1>
+          <h1 className={`text-xl sm:text-2xl font-bold ${themed("text-slate-900", "text-white")}`}>Overview</h1>
         </div>
         <div className={`flex items-center gap-1.5 sm:gap-2 p-1 rounded-full ${themed("bg-slate-200", "bg-slate-900")} flex-shrink-0`}>
           <FilterButton value="7d" label="7 Hari" />

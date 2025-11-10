@@ -16,7 +16,7 @@ export default function AnalysisDetailTabs({ analysisId }) {
   const themed = (light, dark) => (isDark ? dark : light);
 
   const tabs = [
-    { name: "Gambaran Umum", href: `/dashboard/analysis/${analysisId}/overview`, icon: FiLayout },
+    { name: "Overview", href: `/dashboard/analysis/${analysisId}/overview`, icon: FiLayout },
     { name: "Analisis LSA", href: `/dashboard/analysis/${analysisId}/lsa`, icon: FiShare2 },
     { name: "Analisis Funnel", href: `/dashboard/analysis/${analysisId}/funnel`, icon: FiFilter },
   ];

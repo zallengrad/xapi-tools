@@ -1,56 +1,141 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useThemeContext } from "../../../context/theme/ThemeContext";
 // Perhatikan: Pastikan path impor ini benar setelah Anda memindahkan file
 import AnalysisHistory from "./components/AnalysisHistory";
 import { FiBarChart2, FiClock, FiFileText, FiLayers, FiRefreshCcw } from "react-icons/fi";
+import AnalysisActionModal from "./components/AnalysisActionModal";
 
 export default function AnalysisOverviewPage() {
   const { isDark } = useThemeContext();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [results, setResults] = useState([]);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [modalState, setModalState] = useState({ renaming: false, deleting: false, error: "" });
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
-
-    const loadResults = async () => {
-      setIsLoading(true);
-      setError("");
-
-      try {
-        const response = await fetch("/api/analysis"); //
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error("Sesi kedaluwarsa. Silakan login ulang.");
-          }
-
-          const { error: message } = await response.json().catch(() => ({}));
-          throw new Error(message || "Gagal mengambil daftar analisis.");
-        }
-
-        const data = await response.json();
-        if (!mounted) return;
-        setResults(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (!mounted) return;
-        setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadResults();
-
+    mountedRef.current = true;
     return () => {
-      mounted = false;
+      mountedRef.current = false;
     };
   }, []);
+
+  const loadResults = useCallback(async () => {
+    if (!mountedRef.current) return;
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/analysis");
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Sesi kedaluwarsa. Silakan login ulang.");
+        }
+
+        const { error: message } = await response.json().catch(() => ({}));
+        throw new Error(message || "Gagal mengambil daftar analisis.");
+      }
+
+      const data = await response.json();
+      if (!mountedRef.current) return;
+      setResults(Array.isArray(data) ? data : []);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
+    } finally {
+      if (!mountedRef.current) return;
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadResults();
+  }, [loadResults]);
+
+  const resetModalState = () => {
+    setIsActionModalOpen(false);
+    setSelectedAnalysis(null);
+    setRenameValue("");
+    setModalState({ renaming: false, deleting: false, error: "" });
+  };
+
+  const openActionModal = (analysis) => {
+    setSelectedAnalysis(analysis);
+    setRenameValue(analysis?.sourceFile || "");
+    setModalState({ renaming: false, deleting: false, error: "" });
+    setIsActionModalOpen(true);
+  };
+
+  const closeActionModal = () => {
+    if (modalState.renaming || modalState.deleting) {
+      return;
+    }
+    resetModalState();
+  };
+
+  const handleRename = async () => {
+    if (!selectedAnalysis) return;
+    const nextName = renameValue.trim();
+    if (!nextName) {
+      setModalState((prev) => ({ ...prev, error: "Nama file tidak boleh kosong." }));
+      return;
+    }
+
+    setModalState({ renaming: true, deleting: false, error: "" });
+    try {
+      const response = await fetch(`/api/analysis/${selectedAnalysis.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceFile: nextName }),
+      });
+
+      if (!response.ok) {
+        const { error: message } = await response.json().catch(() => ({}));
+        throw new Error(message || "Gagal memperbarui nama analisis.");
+      }
+
+      await loadResults();
+      resetModalState();
+    } catch (err) {
+      setModalState((prev) => ({
+        ...prev,
+        renaming: false,
+        error: err instanceof Error ? err.message : "Terjadi kesalahan.",
+      }));
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedAnalysis) return;
+    setModalState({ renaming: false, deleting: true, error: "" });
+
+    try {
+      const response = await fetch(`/api/analysis/${selectedAnalysis.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const { error: message } = await response.json().catch(() => ({}));
+        throw new Error(message || "Gagal menghapus analisis.");
+      }
+
+      await loadResults();
+      resetModalState();
+    } catch (err) {
+      setModalState((prev) => ({
+        ...prev,
+        deleting: false,
+        error: err instanceof Error ? err.message : "Terjadi kesalahan.",
+      }));
+    }
+  };
 
   const summary = useMemo(() => {
     if (!results.length) {
@@ -191,11 +276,18 @@ export default function AnalysisOverviewPage() {
                         <td className="px-6 py-3">{item.generatedAt ? new Date(item.generatedAt).toLocaleString("id-ID") : "-"}</td>
                         <td className="px-6 py-3">{(item.recordCount ?? 0).toLocaleString("id-ID")}</td>
                         <td className="px-6 py-3">
-                          {/* --- PERUBAHAN DI SINI --- */}
-                          <Link href={`/dashboard/analysis/${item.id}/overview`} className={`text-sm font-semibold transition-colors ${themed("text-sky-600 hover:text-sky-500", "text-sky-300 hover:text-sky-200")}`}>
-                            Lihat Detail
-                          </Link>
-                          {/* ------------------------- */}
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Link href={`/dashboard/analysis/${item.id}/overview`} className={`text-sm font-semibold transition-colors ${themed("text-sky-600 hover:text-sky-500", "text-sky-300 hover:text-sky-200")}`}>
+                              Lihat Detail
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(item)}
+                              className={`text-sm font-semibold underline-offset-4 transition-colors ${themed("text-slate-500 hover:text-slate-800", "text-slate-300 hover:text-white")}`}
+                            >
+                              Kelola
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -206,6 +298,20 @@ export default function AnalysisOverviewPage() {
           </section>
         </div>
       </div>
+
+      <AnalysisActionModal
+        isOpen={isActionModalOpen}
+        isDark={isDark}
+        analysis={selectedAnalysis}
+        renameValue={renameValue}
+        onRenameChange={setRenameValue}
+        onRename={handleRename}
+        onDelete={handleDelete}
+        onClose={closeActionModal}
+        isRenaming={modalState.renaming}
+        isDeleting={modalState.deleting}
+        errorMessage={modalState.error}
+      />
     </div>
   );
 }

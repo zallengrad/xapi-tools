@@ -101,6 +101,7 @@ function AnalysisNav({ items, isDark, isLoading, onNavigate }) {
 export default function Sidebar({ isOpen = false, onClose }) {
   const { data: session, status } = useSession();
   const { isDark } = useThemeContext();
+  const pathname = usePathname(); // trigger rerender & refresh list on route changes
   const [recentAnalyses, setRecentAnalyses] = useState([]);
   const [isLoadingAnalyses, setIsLoadingAnalyses] = useState(true);
 
@@ -109,8 +110,6 @@ export default function Sidebar({ isOpen = false, onClose }) {
       onClose();
     }
   };
-  usePathname(); // trigger rerender on route change for active states
-
   const navLinks = [
     { href: "/dashboard/convert", label: "Upload Data", icon: FiUploadCloud },
     // Tambahkan link lain di sini jika perlu
@@ -151,7 +150,7 @@ export default function Sidebar({ isOpen = false, onClose }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname]);
 
   const sidebarShell = isDark ? "border-slate-800 bg-slate-900 text-slate-100" : "border-slate-200 bg-white text-slate-900";
 

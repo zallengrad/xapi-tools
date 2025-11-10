@@ -24,6 +24,8 @@ export default function ConvertPage() {
   const [message, setMessage] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
   const { isDark, toggle, ready } = useThemeContext();
   const router = useRouter();
 
@@ -95,6 +97,11 @@ export default function ConvertPage() {
     }
   };
 
+  const updateProgress = (value, text) => {
+    setAnalysisProgress(value);
+    setMessage(text);
+  };
+
   const handleUpload = async () => {
     if (!file) {
       setMessage("Silakan pilih file terlebih dahulu.");
@@ -102,7 +109,9 @@ export default function ConvertPage() {
     }
 
     setIsUploading(true);
-    setMessage(`1/6: Membaca file ${file.name}...`);
+    setShowModal(true);
+    setAnalysisComplete(false);
+    updateProgress(5, `1/6: Membaca file ${file.name}...`);
 
     try {
       const results = await new Promise((resolve, reject) => {
@@ -114,18 +123,18 @@ export default function ConvertPage() {
         });
       });
 
-      setMessage("2/6: Membersihkan & menormalisasi data...");
+      updateProgress(20, "2/6: Membersihkan & menormalisasi data...");
       const normalizedRows = results.data.map((row) => normalizeRow(row));
 
       // --- JALUR A: Kalkulasi Overview ---
-      setMessage("3/6: Menghitung data overview (KPI, Grafik)...");
+      updateProgress(40, "3/6: Menghitung data overview (KPI, Grafik)...");
       const overviewResult = calculateOverviewData(normalizedRows);
 
-      setMessage("4/6: Menghitung funnel pengguna & metrik sesi...");
+      updateProgress(55, "4/6: Menghitung funnel pengguna & metrik sesi...");
       const funnelResult = calculateFunnelAndSessionData(normalizedRows);
 
       // --- JALUR B: Kalkulasi LSA ---
-      setMessage("5/6: Menjalankan analisis LSA...");
+      updateProgress(70, "5/6: Menjalankan analisis LSA...");
       const codedData = normalizedRows.map((row) => ({
         ...row,
         behavior_code: assignBehaviorCode(row),
@@ -135,10 +144,13 @@ export default function ConvertPage() {
       if (cleanData.length === 0) {
         setMessage("Tidak ada baris yang cocok dengan aturan perilaku. Periksa kembali struktur file Anda.");
         setIsUploading(false);
+        setAnalysisProgress(0);
+        setShowModal(false);
+        setAnalysisComplete(false);
         return;
       }
 
-      setMessage("3/4: Menjalankan Lag Sequential Analysis (LSA)...");
+      updateProgress(80, "5/6: Menjalankan Lag Sequential Analysis (LSA)...");
       const sortedData = cleanData.sort((a, b) => {
         if (a.actor_id < b.actor_id) return -1;
         if (a.actor_id > b.actor_id) return 1;
@@ -175,7 +187,7 @@ export default function ConvertPage() {
         funnelData: funnelResult,
       };
 
-      setMessage("6/6: Menyimpan hasil analisis ke database...");
+      updateProgress(90, "6/6: Menyimpan hasil analisis ke database...");
 
       // --- LANGKAH 5.4: Kirim Payload Baru ke API ---
       const response = await fetch("/api/analysis", {
@@ -192,8 +204,8 @@ export default function ConvertPage() {
 
       const { id } = await response.json(); // Dapatkan ID dari Induk
 
-      setMessage(`Konversi berhasil! Mengarahkan ke halaman analisis...`);
-      setShowModal(true);
+      updateProgress(100, "Konversi berhasil! Mengarahkan ke halaman analisis...");
+      setAnalysisComplete(true);
       setIsUploading(false);
 
       // --- LANGKAH 5.5: Arahkan ke URL Baru ---
@@ -210,6 +222,9 @@ export default function ConvertPage() {
         setMessage("Gagal membaca atau memproses file CSV. Pastikan format file sesuai.");
       }
       setIsUploading(false);
+      setAnalysisProgress(0);
+      setAnalysisComplete(false);
+      setShowModal(false);
     }
   };
 
@@ -236,9 +251,15 @@ export default function ConvertPage() {
     }
   };
 
+  const handleModalClose = () => {
+    if (analysisComplete) {
+      setShowModal(false);
+    }
+  };
+
   return (
     <main className={`flex min-h-screen w-full flex-col items-center justify-center transition-colors duration-300 p-4 ${theme.main}`}>
-      <ConvertModal isOpen={showModal} onClose={() => setShowModal(false)} isDark={isDark} file={file} />
+      <ConvertModal isOpen={showModal} onClose={handleModalClose} isDark={isDark} file={file} progress={analysisProgress} statusMessage={message} isComplete={analysisComplete} />
 
       <div className="w-full max-w-2xl">
         <div className={`shadow-sm rounded-xl border p-8 text-center transition-colors duration-300 ${theme.card}`}>

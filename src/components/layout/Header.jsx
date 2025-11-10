@@ -59,7 +59,7 @@ export default function Header({ onToggleSidebar = () => {} }) {
           {ready && <ThemeToggle isDark={isDark} onToggle={toggle} />}
 
           {/* help button */}
-          <HelpButton onClick={() => setIsHelpModalOpen(true)} />
+          <HelpButton onClick={() => setIsHelpModalOpen(true)} data-help-trigger />
         </div>
       </header>
 

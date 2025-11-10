@@ -2,13 +2,14 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiUploadCloud } from "react-icons/fi";
 import ThemeToggle from "../../../components/ui/ThemeToggle";
 import UploadDropzone from "./components/UploadDropzone";
 import SelectedFileInfo from "./components/SelectedFileInfo";
 import UploadStatus from "./components/UploadStatus";
 import ConvertModal from "./components/ConvertModal";
+import HelpButton from "../../../components/ui/HelpButton";
 import { useThemeContext } from "../../../context/theme/ThemeContext";
 import { useRouter } from "next/navigation";
 import Papa from "papaparse";
@@ -26,8 +27,34 @@ export default function ConvertPage() {
   const [showModal, setShowModal] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [showHelpOverlay, setShowHelpOverlay] = useState(false);
   const { isDark, toggle, ready } = useThemeContext();
   const router = useRouter();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkExistingAnalyses = async () => {
+      try {
+        const response = await fetch("/api/analysis?limit=1");
+        if (!response.ok) {
+          throw new Error("Failed to check analysis history");
+        }
+        const data = await response.json();
+        if (isMounted && (!Array.isArray(data) || data.length === 0)) {
+          setShowHelpOverlay(true);
+        }
+      } catch (err) {
+        console.error("Unable to check analysis history:", err);
+      }
+    };
+
+    checkExistingAnalyses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const safeJsonParse = (value) => {
     if (typeof value !== "string" || !value.trim()) {
@@ -288,6 +315,30 @@ export default function ConvertPage() {
 
         <p className={`text-center text-xs mt-4 transition-colors ${theme.footer}`}>DevLens | Melihat Lebih Dekat Pola Pengerjaan Kode Anda.</p>
       </div>
+      {showHelpOverlay && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 px-4 py-8 text-center backdrop-blur-md animate-fade-in">
+          <div className={`max-w-md rounded-3xl border px-6 py-8 shadow-2xl ${isDark ? "border-slate-800 bg-slate-900/90 text-slate-100" : "border-white bg-white/95 text-slate-900"}`}>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-400">Panduan Cepat</p>
+            <h2 className="mt-3 text-2xl font-bold">Belum ada analisis tersimpan</h2>
+            <p className="mt-2 text-sm text-slate-400">Mulai dengan membaca panduan singkat agar Anda tahu langkah mengunggah data dan membaca insight.</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  document.querySelector("[data-help-trigger]")?.click();
+                  setShowHelpOverlay(false);
+                }}
+                className="rounded-full bg-sky-600 px-6 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-sky-500"
+              >
+                Buka Bantuan
+              </button>
+              <button type="button" onClick={() => setShowHelpOverlay(false)} className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 hover:text-slate-200">
+                Lewati
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

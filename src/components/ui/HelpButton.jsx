@@ -9,7 +9,7 @@ import { FiHelpCircle } from "react-icons/fi";
  * @param {string} [props.className] - Kelas Tailwind tambahan untuk kustomisasi.
  * @param {string} [props.ariaLabel] - Label aksesibilitas (default: "Bantuan").
  */
-export default function HelpButton({ onClick, className = "", ariaLabel = "Bantuan" }) {
+export default function HelpButton({ onClick, className = "", ariaLabel = "Bantuan", ...rest }) {
   return (
     <button
       type="button"
@@ -37,6 +37,7 @@ export default function HelpButton({ onClick, className = "", ariaLabel = "Bantu
 
         ${className}
       `}
+      {...rest}
     >
       <FiHelpCircle className="h-5 w-5" />
     </button>

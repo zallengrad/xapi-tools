@@ -5,18 +5,18 @@ import Link from "next/link";
 import { useThemeContext } from "../../../context/theme/ThemeContext";
 // Perhatikan: Pastikan path impor ini benar setelah Anda memindahkan file
 import AnalysisHistory from "./components/AnalysisHistory";
-import { FiBarChart2, FiClock, FiFileText, FiLayers, FiRefreshCcw } from "react-icons/fi";
-import AnalysisActionModal from "./components/AnalysisActionModal";
+import { FiBarChart2, FiClock, FiEdit3, FiEye, FiFileText, FiLayers, FiRefreshCcw, FiTrash2 } from "react-icons/fi";
+import { DeleteAnalysisModal, RenameAnalysisModal } from "./components/AnalysisActionModal";
 
 export default function AnalysisOverviewPage() {
   const { isDark } = useThemeContext();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [results, setResults] = useState([]);
-  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
   const [renameValue, setRenameValue] = useState("");
-  const [modalState, setModalState] = useState({ renaming: false, deleting: false, error: "" });
+  const [renameModal, setRenameModal] = useState({ open: false, loading: false, error: "" });
+  const [deleteModal, setDeleteModal] = useState({ open: false, loading: false, error: "" });
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -59,36 +59,41 @@ export default function AnalysisOverviewPage() {
     loadResults();
   }, [loadResults]);
 
-  const resetModalState = () => {
-    setIsActionModalOpen(false);
-    setSelectedAnalysis(null);
-    setRenameValue("");
-    setModalState({ renaming: false, deleting: false, error: "" });
-  };
-
-  const openActionModal = (analysis) => {
+  const openRenameModal = (analysis) => {
     setSelectedAnalysis(analysis);
     setRenameValue(analysis?.sourceFile || "");
-    setModalState({ renaming: false, deleting: false, error: "" });
-    setIsActionModalOpen(true);
+    setRenameModal({ open: true, loading: false, error: "" });
+    setDeleteModal({ open: false, loading: false, error: "" });
   };
 
-  const closeActionModal = () => {
-    if (modalState.renaming || modalState.deleting) {
-      return;
-    }
-    resetModalState();
+  const closeRenameModal = () => {
+    if (renameModal.loading) return;
+    setRenameModal({ open: false, loading: false, error: "" });
+    setRenameValue("");
+    setSelectedAnalysis(null);
+  };
+
+  const openDeleteModal = (analysis) => {
+    setSelectedAnalysis(analysis);
+    setDeleteModal({ open: true, loading: false, error: "" });
+    setRenameModal({ open: false, loading: false, error: "" });
+  };
+
+  const closeDeleteModal = () => {
+    if (deleteModal.loading) return;
+    setDeleteModal({ open: false, loading: false, error: "" });
+    setSelectedAnalysis(null);
   };
 
   const handleRename = async () => {
     if (!selectedAnalysis) return;
     const nextName = renameValue.trim();
     if (!nextName) {
-      setModalState((prev) => ({ ...prev, error: "Nama file tidak boleh kosong." }));
+      setRenameModal((prev) => ({ ...prev, error: "Nama file tidak boleh kosong." }));
       return;
     }
 
-    setModalState({ renaming: true, deleting: false, error: "" });
+    setRenameModal((prev) => ({ ...prev, loading: true, error: "" }));
     try {
       const response = await fetch(`/api/analysis/${selectedAnalysis.id}`, {
         method: "PATCH",
@@ -102,11 +107,13 @@ export default function AnalysisOverviewPage() {
       }
 
       await loadResults();
-      resetModalState();
+      setRenameModal({ open: false, loading: false, error: "" });
+      setRenameValue("");
+      setSelectedAnalysis(null);
     } catch (err) {
-      setModalState((prev) => ({
+      setRenameModal((prev) => ({
         ...prev,
-        renaming: false,
+        loading: false,
         error: err instanceof Error ? err.message : "Terjadi kesalahan.",
       }));
     }
@@ -114,7 +121,7 @@ export default function AnalysisOverviewPage() {
 
   const handleDelete = async () => {
     if (!selectedAnalysis) return;
-    setModalState({ renaming: false, deleting: true, error: "" });
+    setDeleteModal((prev) => ({ ...prev, loading: true, error: "" }));
 
     try {
       const response = await fetch(`/api/analysis/${selectedAnalysis.id}`, {
@@ -127,11 +134,12 @@ export default function AnalysisOverviewPage() {
       }
 
       await loadResults();
-      resetModalState();
+      setDeleteModal({ open: false, loading: false, error: "" });
+      setSelectedAnalysis(null);
     } catch (err) {
-      setModalState((prev) => ({
+      setDeleteModal((prev) => ({
         ...prev,
-        deleting: false,
+        loading: false,
         error: err instanceof Error ? err.message : "Terjadi kesalahan.",
       }));
     }
@@ -272,20 +280,53 @@ export default function AnalysisOverviewPage() {
                   <tbody>
                     {results.map((item) => (
                       <tr key={item.id} className={themed("border-b border-slate-200 hover:bg-slate-50", "border-b border-slate-800/50 hover:bg-slate-800/40")}>
-                        <td className="max-w-xs truncate px-6 py-3">{item.sourceFile || "Tanpa Judul"}</td>
+                        <td className="max-w-xs px-6 py-3">
+                          <Link
+                            href={`/dashboard/analysis/${item.id}/overview`}
+                            className={`line-clamp-1 font-semibold transition-colors ${themed("text-slate-700 hover:text-sky-600", "text-slate-200 hover:text-sky-300")}`}
+                            title="Lihat detail analisis"
+                          >
+                            {item.sourceFile || "Tanpa Judul"}
+                          </Link>
+                        </td>
                         <td className="px-6 py-3">{item.generatedAt ? new Date(item.generatedAt).toLocaleString("id-ID") : "-"}</td>
                         <td className="px-6 py-3">{(item.recordCount ?? 0).toLocaleString("id-ID")}</td>
                         <td className="px-6 py-3">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <Link href={`/dashboard/analysis/${item.id}/overview`} className={`text-sm font-semibold transition-colors ${themed("text-sky-600 hover:text-sky-500", "text-sky-300 hover:text-sky-200")}`}>
-                              Lihat Detail
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              href={`/dashboard/analysis/${item.id}/overview`}
+                              className={`inline-flex items-center justify-center rounded-full p-2 text-base transition ${themed(
+                                "text-slate-500 hover:text-sky-600 hover:bg-slate-100",
+                                "text-slate-300 hover:text-sky-200 hover:bg-slate-800/50"
+                              )}`}
+                              title="Lihat Detail"
+                              aria-label="Lihat detail analisis"
+                            >
+                              <FiEye className="h-4 w-4" />
                             </Link>
                             <button
                               type="button"
-                              onClick={() => openActionModal(item)}
-                              className={`text-sm font-semibold underline-offset-4 transition-colors ${themed("text-slate-500 hover:text-slate-800", "text-slate-300 hover:text-white")}`}
+                              onClick={() => openRenameModal(item)}
+                              className={`inline-flex items-center justify-center rounded-full p-2 text-base transition ${themed(
+                                "text-amber-600 hover:bg-amber-50",
+                                "text-amber-300 hover:bg-amber-500/20"
+                              )}`}
+                              title="Ubah Nama Analisis"
+                              aria-label="Ubah nama analisis"
                             >
-                              Kelola
+                              <FiEdit3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(item)}
+                              className={`inline-flex items-center justify-center rounded-full p-2 text-base transition ${themed(
+                                "text-red-600 hover:bg-red-50",
+                                "text-red-300 hover:bg-red-500/20"
+                              )}`}
+                              title="Hapus Analisis"
+                              aria-label="Hapus analisis"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
@@ -299,18 +340,26 @@ export default function AnalysisOverviewPage() {
         </div>
       </div>
 
-      <AnalysisActionModal
-        isOpen={isActionModalOpen}
+      <RenameAnalysisModal
+        isOpen={renameModal.open}
         isDark={isDark}
         analysis={selectedAnalysis}
         renameValue={renameValue}
         onRenameChange={setRenameValue}
-        onRename={handleRename}
-        onDelete={handleDelete}
-        onClose={closeActionModal}
-        isRenaming={modalState.renaming}
-        isDeleting={modalState.deleting}
-        errorMessage={modalState.error}
+        onSubmit={handleRename}
+        onClose={closeRenameModal}
+        isLoading={renameModal.loading}
+        errorMessage={renameModal.error}
+      />
+
+      <DeleteAnalysisModal
+        isOpen={deleteModal.open}
+        isDark={isDark}
+        analysis={selectedAnalysis}
+        onConfirm={handleDelete}
+        onClose={closeDeleteModal}
+        isLoading={deleteModal.loading}
+        errorMessage={deleteModal.error}
       />
     </div>
   );
